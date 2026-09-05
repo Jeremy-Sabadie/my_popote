@@ -1,0 +1,59 @@
+# ===============================
+# Maven / Java
+# ===============================
+target/
+*.class
+*.jar
+*.war
+*.ear
+
+# Maven Wrapper
+!.mvn/wrapper/maven-wrapper.jar
+
+# ===============================
+# Logs
+# ===============================
+*.log
+logs/
+
+# ===============================
+# IDE
+# ===============================
+
+# Eclipse
+.classpath
+.project
+.settings/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+
+# VS Code
+.vscode/
+
+# ===============================
+# OS
+# ===============================
+.DS_Store
+Thumbs.db
+
+# ===============================
+# Environment / secrets
+# ===============================
+.env
+.env.*
+!.env.example
+
+# Fichiers de configuration locaux contenant potentiellement des secrets
+application-local.properties
+application-local.yml
+application-local.yaml
+
+# ===============================
+# Temporary files
+# ===============================
+*.tmp
+*.temp
+*.swp
+*~
