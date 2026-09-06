@@ -10,42 +10,49 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 
 /**
  * Configuration centrale de la sécurité HTTP de My Popote.
  *
- * Cette fondation protège les endpoints métier,
- * configure CORS et prépare le stockage sécurisé des mots de passe.
- *
- * L'authentification réelle sera ajoutée dans le bloc suivant.
+ * L'API fonctionne sans session serveur :
+ * chaque requête protégée doit fournir un Bearer JWT valide.
  */
 @Configuration
 public class SecurityConfig {
 
     private final String allowedOrigins;
+    private final String jwtSecret;
 
-    /**
-     * Les origines autorisées viennent de la configuration.
-     *
-     * En développement, Angular utilise localhost:4200.
-     * En production, cette valeur sera fournie par l'environnement.
-     */
     public SecurityConfig(
         @Value("${app.cors.allowed-origins:http://localhost:4200}")
-        String allowedOrigins
+        String allowedOrigins,
+
+        @Value("${app.jwt.secret}")
+        String jwtSecret
     ) {
         this.allowedOrigins = allowedOrigins;
+        this.jwtSecret = jwtSecret;
     }
 
     /**
-     * Définit les règles de sécurité appliquées à l'API.
+     * Définit les règles d'accès aux endpoints.
+     *
+     * Les endpoints d'authentification et le health check
+     * restent publics. Toutes les autres routes nécessitent
+     * maintenant un JWT valide.
      */
     @Bean
     public SecurityFilterChain securityFilterChain(
@@ -56,7 +63,8 @@ public class SecurityConfig {
             .cors(Customizer.withDefaults())
 
             /*
-             * My Popote utilisera une API REST sans session serveur.
+             * Aucun état d'authentification n'est conservé
+             * côté serveur entre deux requêtes.
              */
             .sessionManagement(session ->
                 session.sessionCreationPolicy(
@@ -65,8 +73,8 @@ public class SecurityConfig {
             )
 
             /*
-             * Cette configuration sera réévaluée si nous choisissons
-             * une authentification utilisant des cookies.
+             * Nous utilisons actuellement des Bearer tokens
+             * et non une authentification par cookie.
              */
             .csrf(csrf -> csrf.disable())
 
@@ -74,8 +82,16 @@ public class SecurityConfig {
             .httpBasic(basic -> basic.disable())
 
             /*
-             * Une requête sans authentification reçoit 401.
-             * Un utilisateur authentifié sans permission recevra 403.
+             * Spring Security utilise le JwtDecoder déclaré
+             * plus bas pour valider les Bearer JWT.
+             */
+            .oauth2ResourceServer(resourceServer ->
+                resourceServer.jwt(Customizer.withDefaults())
+            )
+
+            /*
+             * Une requête non authentifiée reçoit explicitement
+             * un HTTP 401 plutôt qu'une redirection HTML.
              */
             .exceptionHandling(exceptions ->
                 exceptions.authenticationEntryPoint(
@@ -108,7 +124,10 @@ public class SecurityConfig {
     }
 
     /**
-     * BCrypt est utilisé pour le hash des mots de passe.
+     * Hash sécurisé utilisé pour les mots de passe.
+     *
+     * Un mot de passe utilisateur n'est jamais enregistré
+     * directement en base de données.
      */
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -116,7 +135,26 @@ public class SecurityConfig {
     }
 
     /**
-     * Rend la configuration CORS disponible pour Spring Security.
+     * Décode et vérifie la signature des JWT entrants.
+     *
+     * La même clé secrète sera utilisée par JwtService
+     * pour signer les tokens créés lors de la connexion.
+     */
+    @Bean
+    public JwtDecoder jwtDecoder() {
+        SecretKey secretKey = new SecretKeySpec(
+            jwtSecret.getBytes(StandardCharsets.UTF_8),
+            "HmacSHA256"
+        );
+
+        return NimbusJwtDecoder
+            .withSecretKey(secretKey)
+            .macAlgorithm(MacAlgorithm.HS256)
+            .build();
+    }
+
+    /**
+     * Configuration CORS utilisée par Spring Security.
      */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
@@ -135,9 +173,9 @@ public class SecurityConfig {
     }
 
     /**
-     * Construit les règles CORS de l'application.
+     * Construit la politique CORS de l'application.
      *
-     * Plusieurs origines peuvent être fournies,
+     * Plusieurs origines peuvent être fournies
      * séparées par des virgules.
      */
     CorsConfiguration buildCorsConfiguration() {
@@ -175,10 +213,6 @@ public class SecurityConfig {
             List.of("Location")
         );
 
-        /*
-         * Pas de credentials cross-origin pour le moment.
-         * Ce choix dépendra du mécanisme d'authentification final.
-         */
         configuration.setAllowCredentials(false);
 
         return configuration;
