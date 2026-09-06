@@ -1,24 +1,25 @@
 package fr.mypopote.my_popote_api.shopping;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-
 import java.util.Optional;
 
+import org.springframework.data.jpa.repository.JpaRepository;
+
 /**
- * Repository d'accès aux listes de courses.
+ * Accès aux listes de courses.
  *
- * Les recherches utilisées par l'API sont limitées
- * à l'utilisateur propriétaire du planning associé.
+ * Les recherches incluent toujours l'utilisateur propriétaire afin
+ * d'empêcher l'accès à la liste d'un autre utilisateur.
  */
 public interface ShoppingListRepository
-    extends JpaRepository<ShoppingList, Long> {
+        extends JpaRepository<ShoppingList, Long> {
 
-    /**
-     * Recherche une liste uniquement si son planning
-     * appartient à l'utilisateur authentifié.
-     */
     Optional<ShoppingList> findByIdAndMealPlanUserId(
         Long shoppingListId,
+        Long userId
+    );
+
+    Optional<ShoppingList> findByMealPlanIdAndMealPlanUserId(
+        Long mealPlanId,
         Long userId
     );
 }
