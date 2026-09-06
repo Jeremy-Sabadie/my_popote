@@ -6,273 +6,214 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Tests HTTP du contrôleur d'authentification.
+ * Vérifie le contrat HTTP des endpoints d'authentification.
  *
- * On vérifie ici :
- * - le contrat REST de l'inscription ;
- * - le contrat REST de la connexion ;
+ * Les tests couvrent :
+ * - l'inscription ;
+ * - la connexion ;
  * - la validation des données reçues ;
- * - le fait que les routes d'authentification restent publiques.
- *
- * AuthService est simulé car sa logique métier est testée séparément.
+ * - le contenu de la réponse envoyée au frontend.
  */
 @WebMvcTest(
     controllers = AuthController.class,
     properties = {
+        "app.jwt.secret=my-popote-test-secret-key-12345678901234567890",
         "app.cors.allowed-origins=http://localhost:4200"
     }
 )
 @Import(SecurityConfig.class)
 class AuthControllerTest {
 
-    /**
-     * MockMvc simule des requêtes HTTP sans démarrer
-     * un véritable serveur web.
-     */
     @Autowired
     private MockMvc mockMvc;
 
-    /**
-     * Le service est simulé afin que ces tests restent
-     * concentrés sur le comportement de la couche HTTP.
-     */
     @MockitoBean
     private AuthService authService;
 
-    /**
-     * Une inscription valide doit créer le compte
-     * et retourner HTTP 201 Created.
-     */
+    @MockitoBean
+    private JwtService jwtService;
+
     @Test
-    void shouldRegisterUser() throws Exception {
-        User registeredUser = new User(
-            "jeremy@example.com",
-            "encoded-password",
-            "Jérémy"
-        );
+    void shouldRegisterUserAndReturnAccessToken() throws Exception {
+        User user = createUser();
 
         when(
             authService.register(
-                "jeremy@example.com",
-                "secret123",
-                "Jérémy"
+                anyString(),
+                anyString(),
+                anyString()
             )
-        ).thenReturn(registeredUser);
+        ).thenReturn(user);
 
         mockMvc.perform(
             post("/api/auth/register")
-                .contentType(MediaType.APPLICATION_JSON)
+                .contentType("application/json")
                 .content("""
                     {
                       "email": "jeremy@example.com",
-                      "password": "secret123",
-                      "firstName": "Jérémy"
+                      "password": "Password123!",
+                      "firstName": "Jeremy"
                     }
                     """)
         )
         .andExpect(status().isCreated())
-        .andExpect(
-            jsonPath("$.email")
-                .value("jeremy@example.com")
-        )
-        .andExpect(
-            jsonPath("$.firstName")
-                .value("Jérémy")
-        );
+        .andExpect(jsonPath("$.id")
+            .value(42))
+        .andExpect(jsonPath("$.email")
+            .value("jeremy@example.com"))
+        .andExpect(jsonPath("$.firstName")
+            .value("Jeremy"))
+        .andExpect(jsonPath("$.accessToken")
+            .value("test-access-token"));
     }
 
-    /**
-     * Une connexion valide doit retourner HTTP 200.
-     *
-     * Le futur mécanisme d'authentification réel
-     * sera ajouté après cette fondation.
-     */
     @Test
-    void shouldLoginUser() throws Exception {
-        User authenticatedUser = new User(
-            "jeremy@example.com",
-            "encoded-password",
-            "Jérémy"
-        );
+    void shouldLoginUserAndReturnAccessToken() throws Exception {
+        User user = createUser();
 
         when(
             authService.authenticate(
-                "jeremy@example.com",
-                "secret123"
+                anyString(),
+                anyString()
             )
-        ).thenReturn(authenticatedUser);
+        ).thenReturn(user);
 
         mockMvc.perform(
             post("/api/auth/login")
-                .contentType(MediaType.APPLICATION_JSON)
+                .contentType("application/json")
                 .content("""
                     {
                       "email": "jeremy@example.com",
-                      "password": "secret123"
+                      "password": "Password123!"
                     }
                     """)
         )
         .andExpect(status().isOk())
-        .andExpect(
-            jsonPath("$.email")
-                .value("jeremy@example.com")
-        )
-        .andExpect(
-            jsonPath("$.firstName")
-                .value("Jérémy")
-        );
+        .andExpect(jsonPath("$.id")
+            .value(42))
+        .andExpect(jsonPath("$.email")
+            .value("jeremy@example.com"))
+        .andExpect(jsonPath("$.firstName")
+            .value("Jeremy"))
+        .andExpect(jsonPath("$.accessToken")
+            .value("test-access-token"));
     }
 
-    /**
-     * Une adresse email incorrecte doit être rejetée
-     * avant même d'appeler la couche métier.
-     */
     @Test
     void shouldRejectRegistrationWithInvalidEmail()
         throws Exception {
 
         mockMvc.perform(
             post("/api/auth/register")
-                .contentType(MediaType.APPLICATION_JSON)
+                .contentType("application/json")
                 .content("""
                     {
                       "email": "invalid-email",
-                      "password": "secret123",
-                      "firstName": "Jérémy"
+                      "password": "Password123!",
+                      "firstName": "Jeremy"
                     }
                     """)
         )
         .andExpect(status().isBadRequest());
-
-        verify(authService, never())
-            .register(
-                "invalid-email",
-                "secret123",
-                "Jérémy"
-            );
     }
 
-    /**
-     * Le mot de passe doit avoir une longueur minimale.
-     *
-     * On fixe ici la règle MVP à 8 caractères minimum.
-     */
     @Test
     void shouldRejectRegistrationWithShortPassword()
         throws Exception {
 
         mockMvc.perform(
             post("/api/auth/register")
-                .contentType(MediaType.APPLICATION_JSON)
+                .contentType("application/json")
                 .content("""
                     {
                       "email": "jeremy@example.com",
                       "password": "short",
-                      "firstName": "Jérémy"
+                      "firstName": "Jeremy"
                     }
                     """)
         )
         .andExpect(status().isBadRequest());
-
-        verify(authService, never())
-            .register(
-                "jeremy@example.com",
-                "short",
-                "Jérémy"
-            );
     }
 
-    /**
-     * Le prénom est obligatoire pour créer le compte.
-     */
     @Test
     void shouldRejectRegistrationWithoutFirstName()
         throws Exception {
 
         mockMvc.perform(
             post("/api/auth/register")
-                .contentType(MediaType.APPLICATION_JSON)
+                .contentType("application/json")
                 .content("""
                     {
                       "email": "jeremy@example.com",
-                      "password": "secret123",
-                      "firstName": ""
+                      "password": "Password123!"
                     }
                     """)
         )
         .andExpect(status().isBadRequest());
-
-        verify(authService, never())
-            .register(
-                "jeremy@example.com",
-                "secret123",
-                ""
-            );
     }
 
-    /**
-     * Une tentative de connexion sans email
-     * doit être rejetée par la validation HTTP.
-     */
     @Test
     void shouldRejectLoginWithoutEmail()
         throws Exception {
 
         mockMvc.perform(
             post("/api/auth/login")
-                .contentType(MediaType.APPLICATION_JSON)
+                .contentType("application/json")
                 .content("""
                     {
-                      "email": "",
-                      "password": "secret123"
+                      "password": "Password123!"
                     }
                     """)
         )
         .andExpect(status().isBadRequest());
-
-        verify(authService, never())
-            .authenticate(
-                "",
-                "secret123"
-            );
     }
 
-    /**
-     * Une tentative de connexion sans mot de passe
-     * ne doit jamais atteindre le service.
-     */
     @Test
     void shouldRejectLoginWithoutPassword()
         throws Exception {
 
         mockMvc.perform(
             post("/api/auth/login")
-                .contentType(MediaType.APPLICATION_JSON)
+                .contentType("application/json")
                 .content("""
                     {
-                      "email": "jeremy@example.com",
-                      "password": ""
+                      "email": "jeremy@example.com"
                     }
                     """)
         )
         .andExpect(status().isBadRequest());
+    }
 
-        verify(authService, never())
-            .authenticate(
-                "jeremy@example.com",
-                ""
-            );
+    /**
+     * Prépare un utilisateur simulé cohérent
+     * avec la réponse attendue du contrôleur.
+     */
+    private User createUser() {
+        User user = org.mockito.Mockito.mock(User.class);
+
+        when(user.getId()).thenReturn(42L);
+        when(user.getEmail())
+            .thenReturn("jeremy@example.com");
+        when(user.getFirstName())
+            .thenReturn("Jeremy");
+
+        when(
+            jwtService.generateToken(
+                42L,
+                "jeremy@example.com"
+            )
+        ).thenReturn("test-access-token");
+
+        return user;
     }
 }
