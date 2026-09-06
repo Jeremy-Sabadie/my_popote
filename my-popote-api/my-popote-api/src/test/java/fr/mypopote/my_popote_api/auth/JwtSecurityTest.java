@@ -8,16 +8,19 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Vérifie que Spring Security reconnaît réellement
- * les JWT produits par notre application.
+ * Vérifie la frontière de sécurité HTTP de l'application.
  *
- * On ne teste pas ici une fonctionnalité métier précise :
- * on teste la frontière de sécurité HTTP.
+ * Une route protégée doit :
+ * - refuser une requête sans token ;
+ * - refuser un token invalide ;
+ * - accepter un JWT valide généré par My Popote.
  */
 @WebMvcTest(
+    controllers = ProtectedTestController.class,
     properties = {
         "app.cors.allowed-origins=http://localhost:4200",
         "app.jwt.secret=my-popote-test-secret-key-12345678901234567890"
@@ -26,37 +29,67 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import(SecurityConfig.class)
 class JwtSecurityTest {
 
+    private static final String TEST_SECRET =
+        "my-popote-test-secret-key-12345678901234567890";
+
     @Autowired
     private MockMvc mockMvc;
 
     /**
-     * Sans JWT, une route protégée doit rester inaccessible.
+     * Sans authentification, une route métier
+     * ne doit jamais être accessible.
      */
     @Test
     void shouldRejectProtectedEndpointWithoutToken()
         throws Exception {
 
         mockMvc.perform(
-            get("/api/recipes")
+            get("/api/test/protected")
         )
         .andExpect(status().isUnauthorized());
     }
 
     /**
-     * Un Bearer token invalide ne doit jamais
-     * permettre d'accéder à une route protégée.
+     * Un Bearer token invalide doit être rejeté.
      */
     @Test
     void shouldRejectProtectedEndpointWithInvalidToken()
         throws Exception {
 
         mockMvc.perform(
-            get("/api/recipes")
+            get("/api/test/protected")
                 .header(
                     "Authorization",
                     "Bearer invalid-token"
                 )
         )
         .andExpect(status().isUnauthorized());
+    }
+
+    /**
+     * Un JWT correctement signé doit permettre
+     * l'accès à une route protégée.
+     */
+    @Test
+    void shouldAllowProtectedEndpointWithValidToken()
+        throws Exception {
+
+        JwtService jwtService =
+            JwtService.forSecret(TEST_SECRET);
+
+        String token = jwtService.generateToken(
+            42L,
+            "jeremy@example.com"
+        );
+
+        mockMvc.perform(
+            get("/api/test/protected")
+                .header(
+                    "Authorization",
+                    "Bearer " + token
+                )
+        )
+        .andExpect(status().isOk())
+        .andExpect(content().string("protected"));
     }
 }
