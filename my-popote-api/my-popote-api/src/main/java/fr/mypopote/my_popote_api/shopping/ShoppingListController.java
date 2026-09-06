@@ -1,20 +1,24 @@
 package fr.mypopote.my_popote_api.shopping;
 
-import fr.mypopote.my_popote_api.security.CurrentUserService;
-import fr.mypopote.my_popote_api.shopping.dto.ShoppingListResponse;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
+import fr.mypopote.my_popote_api.security.CurrentUserService;
+import fr.mypopote.my_popote_api.shopping.dto.ShoppingItemResponse;
+import fr.mypopote.my_popote_api.shopping.dto.ShoppingItemUpdateRequest;
+import fr.mypopote.my_popote_api.shopping.dto.ShoppingListResponse;
 
 /**
- * API REST dédiée aux listes de courses.
+ * Endpoints liés aux listes de courses.
  *
- * L'identité utilisateur provient exclusivement du JWT.
+ * L'identifiant utilisateur vient toujours du JWT et jamais du client.
  */
 @RestController
 @RequestMapping("/api/shopping-lists")
@@ -24,38 +28,60 @@ public class ShoppingListController {
     private final CurrentUserService currentUserService;
 
     public ShoppingListController(
-        ShoppingListService shoppingListService,
-        CurrentUserService currentUserService
-    ) {
+            ShoppingListService shoppingListService,
+            CurrentUserService currentUserService) {
+
         this.shoppingListService = shoppingListService;
         this.currentUserService = currentUserService;
     }
 
     /**
-     * Retourne une liste uniquement si elle appartient
-     * à l'utilisateur connecté.
+     * Génère ou régénère la liste de courses d'un planning.
      */
-    @GetMapping("/{shoppingListId}")
-    public ShoppingListResponse findById(
-        @AuthenticationPrincipal Jwt jwt,
-        @PathVariable Long shoppingListId
-    ) {
+    @PostMapping("/generate/{mealPlanId}")
+    public ShoppingListResponse generate(
+            @PathVariable Long mealPlanId,
+            @AuthenticationPrincipal Jwt jwt) {
+
         Long userId = currentUserService.getUserId(jwt);
 
-        ShoppingList shoppingList =
-            shoppingListService.findByIdAndUserId(
-                shoppingListId,
-                userId
-            );
-
-        Long mealPlanId = shoppingList.getMealPlan() == null
-            ? null
-            : shoppingList.getMealPlan().getId();
-
-        return new ShoppingListResponse(
-            shoppingList.getId(),
+        return shoppingListService.generate(
             mealPlanId,
-            List.of()
+            userId
+        );
+    }
+
+    /**
+     * Retourne une liste de courses appartenant à l'utilisateur.
+     */
+    @GetMapping("/{shoppingListId}")
+    public ShoppingListResponse getShoppingList(
+            @PathVariable Long shoppingListId,
+            @AuthenticationPrincipal Jwt jwt) {
+
+        Long userId = currentUserService.getUserId(jwt);
+
+        return shoppingListService.findByIdAndUserId(
+            shoppingListId,
+            userId
+        );
+    }
+
+    /**
+     * Coche ou décoche un article pendant les courses.
+     */
+    @PatchMapping("/items/{shoppingItemId}")
+    public ShoppingItemResponse updateChecked(
+            @PathVariable Long shoppingItemId,
+            @RequestBody ShoppingItemUpdateRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+
+        Long userId = currentUserService.getUserId(jwt);
+
+        return shoppingListService.updateChecked(
+            shoppingItemId,
+            userId,
+            request.checked()
         );
     }
 }
