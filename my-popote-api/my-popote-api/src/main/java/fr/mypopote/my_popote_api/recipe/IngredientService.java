@@ -6,7 +6,7 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Service chargé de la gestion des ingrédients.
  *
- * Les ingrédients sont actuellement partagés entre les utilisateurs.
+ * Les ingrédients sont partagés entre les utilisateurs.
  * Un même ingrédient doit donc être réutilisé autant que possible.
  */
 @Service
@@ -21,14 +21,14 @@ public class IngredientService {
     /**
      * Recherche un ingrédient sans tenir compte de la casse.
      *
-     * S'il n'existe pas encore, il est créé afin d'éviter que
-     * cette logique soit dupliquée dans RecipeService.
+     * S'il n'existe pas encore, il est créé afin d'éviter
+     * de dupliquer cette logique dans RecipeService.
      */
     @Transactional
     public Ingredient findOrCreate(String name) {
         return ingredientRepository.findByNameIgnoreCase(name)
-            .orElseGet(() -> ingredientRepository.save(
-                new Ingredient(name)
-            ));
+            .orElseGet(() ->
+                ingredientRepository.save(new Ingredient(name))
+            );
     }
 }

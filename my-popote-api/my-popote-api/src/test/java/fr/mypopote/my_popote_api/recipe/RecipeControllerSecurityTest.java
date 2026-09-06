@@ -10,6 +10,8 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.List;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -18,8 +20,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Vérifie que l'API des recettes utilise l'identité authentifiée
- * plutôt qu'un identifiant utilisateur fourni par le client.
+ * Vérifie que l'API des recettes utilise uniquement
+ * l'identité de l'utilisateur authentifié.
  */
 @WebMvcTest(RecipeController.class)
 @Import(SecurityConfig.class)
@@ -34,16 +36,20 @@ class RecipeControllerSecurityTest {
     @MockitoBean
     private CurrentUserService currentUserService;
 
-    /**
-     * L'identité utilisée pour charger les recettes doit venir du JWT.
-     */
     @Test
-    void shouldUseAuthenticatedUserIdToFindRecipes() throws Exception {
+    void shouldUseAuthenticatedUserIdToFindRecipes()
+        throws Exception {
+
         when(currentUserService.getUserId(any(Jwt.class)))
             .thenReturn(42L);
 
-        when(recipeService.findAllByUserId(42L))
-            .thenReturn(java.util.List.of());
+        when(
+            recipeService.findAllByUserId(
+                42L,
+                null,
+                null
+            )
+        ).thenReturn(List.of());
 
         mockMvc.perform(
                 get("/api/recipes")
@@ -54,6 +60,10 @@ class RecipeControllerSecurityTest {
             .andExpect(status().isOk());
 
         verify(recipeService)
-            .findAllByUserId(42L);
+            .findAllByUserId(
+                42L,
+                null,
+                null
+            );
     }
 }
