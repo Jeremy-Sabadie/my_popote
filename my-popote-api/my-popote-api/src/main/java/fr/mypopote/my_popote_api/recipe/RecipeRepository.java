@@ -8,22 +8,31 @@ import java.util.Optional;
 /**
  * Repository d'accès aux recettes.
  *
- * Les recherches sont volontairement limitées par utilisateur
- * afin de respecter l'isolation des données entre comptes.
+ * Toutes les recherches métier sont limitées à l'utilisateur propriétaire.
  */
 public interface RecipeRepository extends JpaRepository<Recipe, Long> {
 
-    /**
-     * Retourne toutes les recettes appartenant à un utilisateur donné.
-     */
     List<Recipe> findAllByUserId(Long userId);
 
-    /**
-     * Recherche une recette uniquement si elle appartient
-     * à l'utilisateur authentifié.
-     */
     Optional<Recipe> findByIdAndUserId(
         Long id,
         Long userId
     );
+
+    List<Recipe> findAllByUserIdAndCategoryIgnoreCase(
+        Long userId,
+        String category
+    );
+
+    List<Recipe> findDistinctByUserIdAndSeasonsSeasonIgnoreCase(
+        Long userId,
+        String season
+    );
+
+    List<Recipe>
+        findDistinctByUserIdAndCategoryIgnoreCaseAndSeasonsSeasonIgnoreCase(
+            Long userId,
+            String category,
+            String season
+        );
 }

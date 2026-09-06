@@ -1,8 +1,8 @@
 package fr.mypopote.my_popote_api.recipe;
 
+import fr.mypopote.my_popote_api.recipe.dto.RecipeRequest;
 import fr.mypopote.my_popote_api.recipe.dto.RecipeResponse;
 import fr.mypopote.my_popote_api.security.CurrentUserService;
-import fr.mypopote.my_popote_api.user.User;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -10,16 +10,18 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.oauth2.jwt.Jwt;
 
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
  * Tests unitaires du contrôleur des recettes.
  *
- * L'identité utilisateur doit provenir du JWT authentifié
- * et jamais d'un identifiant fourni par le frontend.
+ * L'identité utilisateur provient toujours du JWT.
  */
 @ExtendWith(MockitoExtension.class)
 class RecipeControllerTest {
@@ -38,36 +40,86 @@ class RecipeControllerTest {
 
     @Test
     void shouldReturnRecipesForAuthenticatedUser() {
-        User user = new User(
-            "jeremy@example.com",
-            "hashed-password",
-            "Jérémy"
-        );
-
-        Recipe recipe = new Recipe(
-            user,
+        RecipeResponse recipe = new RecipeResponse(
+            10L,
             "Poulet curry",
             "MEAT",
             2,
-            null,
-            null
+            new BigDecimal("8.50"),
+            "Faire cuire le poulet.",
+            List.of(),
+            Set.of("WINTER")
         );
 
         when(currentUserService.getUserId(jwt))
             .thenReturn(1L);
 
-        when(recipeService.findAllByUserId(1L))
-            .thenReturn(List.of(recipe));
+        when(
+            recipeService.findAllByUserId(
+                1L,
+                null,
+                null
+            )
+        ).thenReturn(List.of(recipe));
 
         List<RecipeResponse> response =
-            recipeController.findAll(jwt);
+            recipeController.findAll(
+                jwt,
+                null,
+                null
+            );
 
-        assertThat(response).hasSize(1);
-        assertThat(response.get(0).name())
-            .isEqualTo("Poulet curry");
-        assertThat(response.get(0).category())
-            .isEqualTo("MEAT");
-        assertThat(response.get(0).servings())
-            .isEqualTo(2);
+        assertThat(response)
+            .containsExactly(recipe);
+    }
+
+    @Test
+    void shouldCreateRecipeForAuthenticatedUser() {
+        RecipeRequest request = new RecipeRequest(
+            "Poulet curry",
+            "MEAT",
+            2,
+            null,
+            null,
+            List.of(),
+            Set.of()
+        );
+
+        RecipeResponse response = new RecipeResponse(
+            10L,
+            "Poulet curry",
+            "MEAT",
+            2,
+            null,
+            null,
+            List.of(),
+            Set.of()
+        );
+
+        when(currentUserService.getUserId(jwt))
+            .thenReturn(1L);
+
+        when(recipeService.create(request, 1L))
+            .thenReturn(response);
+
+        RecipeResponse result =
+            recipeController.create(request, jwt);
+
+        assertThat(result.id())
+            .isEqualTo(10L);
+
+        verify(recipeService)
+            .create(request, 1L);
+    }
+
+    @Test
+    void shouldDeleteRecipeForAuthenticatedUser() {
+        when(currentUserService.getUserId(jwt))
+            .thenReturn(1L);
+
+        recipeController.delete(10L, jwt);
+
+        verify(recipeService)
+            .delete(10L, 1L);
     }
 }

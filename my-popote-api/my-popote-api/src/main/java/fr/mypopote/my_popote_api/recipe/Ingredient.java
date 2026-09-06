@@ -12,8 +12,8 @@ import java.time.LocalDateTime;
 /**
  * Représente un ingrédient utilisable dans les recettes.
  *
- * Dans la première version de My Popote, les ingrédients constituent
- * un référentiel commun et ne sont pas directement rattachés à un utilisateur.
+ * Les ingrédients constituent un référentiel commun
+ * partagé entre les utilisateurs.
  */
 @Entity
 @Table(name = "ingredient")
@@ -28,15 +28,12 @@ public class Ingredient {
 
     /**
      * Nom unique de l'ingrédient.
-     *
-     * L'unicité permet notamment de regrouper correctement les ingrédients
-     * lors de la génération de la liste de courses.
      */
     @Column(nullable = false, unique = true, length = 150)
     private String name;
 
     /**
-     * Date de création générée par MariaDB.
+     * Date de création gérée par MariaDB.
      */
     @Column(
         name = "created_at",

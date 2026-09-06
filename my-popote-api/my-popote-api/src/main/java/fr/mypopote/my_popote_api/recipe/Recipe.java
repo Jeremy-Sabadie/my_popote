@@ -1,6 +1,7 @@
 package fr.mypopote.my_popote_api.recipe;
 
 import fr.mypopote.my_popote_api.user.User;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -9,10 +10,13 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Représente une recette créée par un utilisateur.
@@ -24,60 +28,55 @@ import java.time.LocalDateTime;
 @Table(name = "recipe")
 public class Recipe {
 
-    /**
-     * Identifiant technique généré automatiquement par MariaDB.
-     */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     /**
      * Utilisateur propriétaire de la recette.
-     *
-     * Le chargement est volontairement LAZY afin de ne pas charger
-     * l'utilisateur systématiquement lorsqu'une recette est récupérée.
      */
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    /**
-     * Nom affiché de la recette.
-     */
     @Column(nullable = false, length = 150)
     private String name;
 
-    /**
-     * Catégorie principale de la recette :
-     * végétarien, viande, poisson, soupe, salade, etc.
-     */
     @Column(nullable = false, length = 50)
     private String category;
 
-    /**
-     * Nombre de portions prévues par la recette.
-     */
     @Column(nullable = false)
     private Integer servings;
 
-    /**
-     * Coût estimatif de la recette.
-     *
-     * BigDecimal est utilisé plutôt que double pour éviter
-     * les problèmes de précision avec les valeurs monétaires.
-     */
     @Column(name = "estimated_cost", precision = 10, scale = 2)
     private BigDecimal estimatedCost;
 
-    /**
-     * Instructions de préparation de la recette.
-     */
     @Column(columnDefinition = "TEXT")
     private String instructions;
 
     /**
-     * Date de création générée directement par MariaDB.
+     * Ingrédients et quantités nécessaires à la recette.
+     *
+     * orphanRemoval permet de supprimer automatiquement une ancienne
+     * association lorsqu'une recette est modifiée.
      */
+    @OneToMany(
+        mappedBy = "recipe",
+        cascade = CascadeType.ALL,
+        orphanRemoval = true
+    )
+    private List<RecipeIngredient> ingredients = new ArrayList<>();
+
+    /**
+     * Saisons pendant lesquelles la recette est pertinente.
+     */
+    @OneToMany(
+        mappedBy = "recipe",
+        cascade = CascadeType.ALL,
+        orphanRemoval = true
+    )
+    private List<RecipeSeason> seasons = new ArrayList<>();
+
     @Column(
         name = "created_at",
         nullable = false,
@@ -86,9 +85,6 @@ public class Recipe {
     )
     private LocalDateTime createdAt;
 
-    /**
-     * Date de dernière modification gérée par MariaDB.
-     */
     @Column(
         name = "updated_at",
         nullable = false,
@@ -115,6 +111,40 @@ public class Recipe {
         this.servings = servings;
         this.estimatedCost = estimatedCost;
         this.instructions = instructions;
+    }
+
+    /**
+     * Ajoute un ingrédient en maintenant la relation avec la recette.
+     */
+    public void addIngredient(
+        Ingredient ingredient,
+        BigDecimal quantity,
+        String unit
+    ) {
+        ingredients.add(
+            new RecipeIngredient(this, ingredient, quantity, unit)
+        );
+    }
+
+    /**
+     * Ajoute une saison à la recette.
+     */
+    public void addSeason(String season) {
+        seasons.add(new RecipeSeason(this, season));
+    }
+
+    /**
+     * Vide les ingrédients avant reconstruction lors d'une modification.
+     */
+    public void clearIngredients() {
+        ingredients.clear();
+    }
+
+    /**
+     * Vide les saisons avant reconstruction lors d'une modification.
+     */
+    public void clearSeasons() {
+        seasons.clear();
     }
 
     public Long getId() {
@@ -167,6 +197,14 @@ public class Recipe {
 
     public void setInstructions(String instructions) {
         this.instructions = instructions;
+    }
+
+    public List<RecipeIngredient> getIngredients() {
+        return ingredients;
+    }
+
+    public List<RecipeSeason> getSeasons() {
+        return seasons;
     }
 
     public LocalDateTime getCreatedAt() {
