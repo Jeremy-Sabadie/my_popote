@@ -9,8 +9,8 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Service chargé des repas positionnés dans un planning.
  *
- * Le planning et la recette sont toujours recherchés
- * avec l'identifiant de l'utilisateur authentifié.
+ * Les opérations sont toujours limitées aux données
+ * de l'utilisateur authentifié.
  */
 @Service
 public class PlannedMealService {
@@ -29,34 +29,101 @@ public class PlannedMealService {
         this.recipeRepository = recipeRepository;
     }
 
-    /**
-     * Ajoute un repas à un planning appartenant
-     * à l'utilisateur authentifié.
-     */
     @Transactional
     public PlannedMeal create(
         Long userId,
         PlannedMealRequest request
     ) {
         MealPlan mealPlan = mealPlanRepository
-            .findByIdAndUserId(request.mealPlanId(), userId)
-            .orElseThrow(() -> new IllegalArgumentException(
-                "Meal plan not found"
-            ));
+            .findByIdAndUserId(
+                request.mealPlanId(),
+                userId
+            )
+            .orElseThrow(() ->
+                new IllegalArgumentException(
+                    "Meal plan not found"
+                )
+            );
 
         Recipe recipe = recipeRepository
-            .findByIdAndUserId(request.recipeId(), userId)
-            .orElseThrow(() -> new IllegalArgumentException(
-                "Recipe not found"
-            ));
+            .findByIdAndUserId(
+                request.recipeId(),
+                userId
+            )
+            .orElseThrow(() ->
+                new IllegalArgumentException(
+                    "Recipe not found"
+                )
+            );
 
-        PlannedMeal plannedMeal = new PlannedMeal(
-            mealPlan,
-            recipe,
-            request.mealDate(),
-            request.mealType()
+        PlannedMeal plannedMeal =
+            new PlannedMeal(
+                mealPlan,
+                recipe,
+                request.mealDate(),
+                normalizeMealType(
+                    request.mealType()
+                )
+            );
+
+        return plannedMealRepository.save(
+            plannedMeal
         );
+    }
 
-        return plannedMealRepository.save(plannedMeal);
+    /**
+     * Remplace la recette d'un créneau existant.
+     */
+    @Transactional
+    public PlannedMeal replaceRecipe(
+        Long userId,
+        Long plannedMealId,
+        Long recipeId
+    ) {
+        PlannedMeal plannedMeal =
+            plannedMealRepository
+                .findByIdAndMealPlanUserId(
+                    plannedMealId,
+                    userId
+                )
+                .orElseThrow(() ->
+                    new IllegalArgumentException(
+                        "Planned meal not found"
+                    )
+                );
+
+        Recipe recipe = recipeRepository
+            .findByIdAndUserId(
+                recipeId,
+                userId
+            )
+            .orElseThrow(() ->
+                new IllegalArgumentException(
+                    "Recipe not found"
+                )
+            );
+
+        plannedMeal.setRecipe(recipe);
+
+        return plannedMealRepository.save(
+            plannedMeal
+        );
+    }
+
+    private String normalizeMealType(
+        String mealType
+    ) {
+        String normalized =
+            mealType.trim().toUpperCase();
+
+        if (!normalized.equals("LUNCH")
+            && !normalized.equals("DINNER")) {
+
+            throw new IllegalArgumentException(
+                "Meal type must be LUNCH or DINNER"
+            );
+        }
+
+        return normalized;
     }
 }

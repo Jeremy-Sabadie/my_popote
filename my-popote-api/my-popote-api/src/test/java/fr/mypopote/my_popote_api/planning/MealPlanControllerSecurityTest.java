@@ -1,8 +1,8 @@
 package fr.mypopote.my_popote_api.planning;
 
+import fr.mypopote.my_popote_api.planning.dto.MealPlanResponse;
 import fr.mypopote.my_popote_api.security.CurrentUserService;
 import fr.mypopote.my_popote_api.security.SecurityConfig;
-import fr.mypopote.my_popote_api.user.User;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -12,7 +12,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDate;
-import java.util.Optional;
+import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
@@ -21,10 +21,6 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * Vérifie que l'accès aux plannings utilise uniquement
- * l'identité de l'utilisateur authentifié.
- */
 @WebMvcTest(MealPlanController.class)
 @Import(SecurityConfig.class)
 class MealPlanControllerSecurityTest {
@@ -38,42 +34,54 @@ class MealPlanControllerSecurityTest {
     @MockitoBean
     private CurrentUserService currentUserService;
 
-    /**
-     * Le userId utilisé pour rechercher le planning
-     * doit provenir du JWT.
-     */
     @Test
-    void shouldUseAuthenticatedUserIdToFindMealPlan() throws Exception {
-        LocalDate weekStartDate = LocalDate.of(2026, 9, 7);
+    void shouldUseAuthenticatedUserIdToFindMealPlan()
+        throws Exception {
 
-        User user = new User(
-            "jeremy@example.com",
-            "hashed-password",
-            "Jérémy"
-        );
+        LocalDate weekStartDate =
+            LocalDate.of(2026, 9, 7);
 
-        MealPlan mealPlan = new MealPlan(
-            user,
-            weekStartDate,
-            false,
-            null,
-            null
-        );
+        MealPlanResponse response =
+            new MealPlanResponse(
+                10L,
+                weekStartDate,
+                false,
+                null,
+                null,
+                List.of()
+            );
 
-        when(currentUserService.getUserId(any(Jwt.class)))
-            .thenReturn(42L);
+        when(
+            currentUserService.getUserId(
+                any(Jwt.class)
+            )
+        ).thenReturn(42L);
 
-        when(mealPlanService.findByUserAndWeek(42L, weekStartDate))
-            .thenReturn(Optional.of(mealPlan));
+        when(
+            mealPlanService.getWeek(
+                42L,
+                weekStartDate
+            )
+        ).thenReturn(response);
 
         mockMvc.perform(
                 get("/api/meal-plans")
-                    .param("weekStartDate", "2026-09-07")
-                    .with(jwt().jwt(jwt -> jwt.subject("42")))
+                    .param(
+                        "weekStartDate",
+                        "2026-09-07"
+                    )
+                    .with(
+                        jwt().jwt(token ->
+                            token.subject("42")
+                        )
+                    )
             )
             .andExpect(status().isOk());
 
         verify(mealPlanService)
-            .findByUserAndWeek(42L, weekStartDate);
+            .getWeek(
+                42L,
+                weekStartDate
+            );
     }
 }

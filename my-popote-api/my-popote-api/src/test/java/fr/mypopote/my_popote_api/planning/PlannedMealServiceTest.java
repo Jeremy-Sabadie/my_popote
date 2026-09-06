@@ -18,12 +18,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/**
- * Tests unitaires de la gestion des repas planifiés.
- *
- * Le service doit vérifier que le planning et la recette
- * appartiennent bien à l'utilisateur authentifié.
- */
 @ExtendWith(MockitoExtension.class)
 class PlannedMealServiceTest {
 
@@ -42,7 +36,8 @@ class PlannedMealServiceTest {
     @Test
     void shouldCreatePlannedMealForAuthenticatedUser() {
         Long userId = 42L;
-        LocalDate mealDate = LocalDate.of(2026, 9, 7);
+        LocalDate mealDate =
+            LocalDate.of(2026, 9, 7);
 
         User user = new User(
             "jeremy@example.com",
@@ -67,34 +62,140 @@ class PlannedMealServiceTest {
             null
         );
 
-        PlannedMealRequest request = new PlannedMealRequest(
-            10L,
-            20L,
-            mealDate,
-            "LUNCH"
+        PlannedMealRequest request =
+            new PlannedMealRequest(
+                10L,
+                20L,
+                mealDate,
+                "lunch"
+            );
+
+        when(
+            mealPlanRepository.findByIdAndUserId(
+                10L,
+                userId
+            )
+        ).thenReturn(Optional.of(mealPlan));
+
+        when(
+            recipeRepository.findByIdAndUserId(
+                20L,
+                userId
+            )
+        ).thenReturn(Optional.of(recipe));
+
+        when(
+            plannedMealRepository.save(
+                any(PlannedMeal.class)
+            )
+        ).thenAnswer(
+            invocation -> invocation.getArgument(0)
         );
 
-        when(mealPlanRepository.findByIdAndUserId(10L, userId))
-            .thenReturn(Optional.of(mealPlan));
+        PlannedMeal result =
+            plannedMealService.create(
+                userId,
+                request
+            );
 
-        when(recipeRepository.findByIdAndUserId(20L, userId))
-            .thenReturn(Optional.of(recipe));
+        assertThat(result.getMealPlan())
+            .isSameAs(mealPlan);
 
-        when(plannedMealRepository.save(any(PlannedMeal.class)))
-            .thenAnswer(invocation -> invocation.getArgument(0));
+        assertThat(result.getRecipe())
+            .isSameAs(recipe);
+
+        assertThat(result.getMealDate())
+            .isEqualTo(mealDate);
+
+        assertThat(result.getMealType())
+            .isEqualTo("LUNCH");
+    }
+
+    @Test
+    void shouldReplaceRecipeOnlyForOwnedPlannedMeal() {
+        Long userId = 42L;
+        LocalDate mealDate =
+            LocalDate.of(2026, 9, 7);
+
+        User user = new User(
+            "jeremy@example.com",
+            "hashed-password",
+            "Jérémy"
+        );
+
+        MealPlan mealPlan = new MealPlan(
+            user,
+            mealDate,
+            false,
+            null,
+            null
+        );
+
+        Recipe oldRecipe = new Recipe(
+            user,
+            "Poulet curry",
+            "MEAT",
+            2,
+            null,
+            null
+        );
+
+        Recipe newRecipe = new Recipe(
+            user,
+            "Pâtes tomate",
+            "VEGETARIAN",
+            2,
+            null,
+            null
+        );
+
+        PlannedMeal plannedMeal =
+            new PlannedMeal(
+                mealPlan,
+                oldRecipe,
+                mealDate,
+                "LUNCH"
+            );
+
+        when(
+            plannedMealRepository
+                .findByIdAndMealPlanUserId(
+                    30L,
+                    userId
+                )
+        ).thenReturn(
+            Optional.of(plannedMeal)
+        );
+
+        when(
+            recipeRepository.findByIdAndUserId(
+                20L,
+                userId
+            )
+        ).thenReturn(
+            Optional.of(newRecipe)
+        );
+
+        when(
+            plannedMealRepository.save(
+                plannedMeal
+            )
+        ).thenReturn(plannedMeal);
 
         PlannedMeal result =
-            plannedMealService.create(userId, request);
+            plannedMealService.replaceRecipe(
+                userId,
+                30L,
+                20L
+            );
 
-        assertThat(result.getMealPlan()).isSameAs(mealPlan);
-        assertThat(result.getRecipe()).isSameAs(recipe);
-        assertThat(result.getMealDate()).isEqualTo(mealDate);
-        assertThat(result.getMealType()).isEqualTo("LUNCH");
+        assertThat(result.getRecipe())
+            .isSameAs(newRecipe);
 
-        verify(mealPlanRepository)
-            .findByIdAndUserId(10L, userId);
-
-        verify(recipeRepository)
-            .findByIdAndUserId(20L, userId);
+        verify(plannedMealRepository)
+            .findByIdAndMealPlanUserId(
+                30L,
+                userId
+            );
     }
 }
