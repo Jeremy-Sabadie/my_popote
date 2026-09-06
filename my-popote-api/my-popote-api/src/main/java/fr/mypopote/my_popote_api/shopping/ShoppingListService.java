@@ -6,8 +6,8 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Service chargé de la gestion des listes de courses.
  *
- * La logique d'agrégation des ingrédients sera ajoutée plus tard
- * avec ses propres tests métier.
+ * Toute récupération d'une liste destinée à l'utilisateur
+ * est limitée au propriétaire du planning associé.
  */
 @Service
 @Transactional(readOnly = true)
@@ -22,15 +22,16 @@ public class ShoppingListService {
     }
 
     /**
-     * Recherche une liste de courses par son identifiant.
-     *
-     * Une exception métier dédiée remplacera IllegalArgumentException
-     * lorsque nous construirons la gestion centralisée des erreurs.
+     * Recherche une liste appartenant à l'utilisateur authentifié.
      */
-    public ShoppingList findById(Long shoppingListId) {
-        return shoppingListRepository.findById(shoppingListId)
+    public ShoppingList findByIdAndUserId(
+        Long shoppingListId,
+        Long userId
+    ) {
+        return shoppingListRepository
+            .findByIdAndMealPlanUserId(shoppingListId, userId)
             .orElseThrow(() -> new IllegalArgumentException(
-                "Shopping list not found with id: " + shoppingListId
+                "Shopping list not found"
             ));
     }
 }
