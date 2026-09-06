@@ -1,0 +1,8 @@
+package fr.mypopote.my_popote_api.user.dto;
+
+public record UserResponse(
+    Long id,
+    String email,
+    String firstName
+) {
+}
