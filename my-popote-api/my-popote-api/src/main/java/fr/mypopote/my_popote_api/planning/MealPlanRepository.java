@@ -3,13 +3,14 @@ package fr.mypopote.my_popote_api.planning;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 /**
  * Repository d'accès aux plannings hebdomadaires.
  *
- * Les recherches sont limitées par utilisateur afin
- * de garantir l'isolation des données entre comptes.
+ * Les recherches fonctionnelles sont toujours limitées
+ * à l'utilisateur propriétaire.
  */
 public interface MealPlanRepository extends JpaRepository<MealPlan, Long> {
 
@@ -18,12 +19,15 @@ public interface MealPlanRepository extends JpaRepository<MealPlan, Long> {
         LocalDate weekStartDate
     );
 
-    /**
-     * Recherche un planning uniquement s'il appartient
-     * à l'utilisateur authentifié.
-     */
     Optional<MealPlan> findByIdAndUserId(
         Long id,
+        Long userId
+    );
+
+    /**
+     * Historique du plus récent au plus ancien.
+     */
+    List<MealPlan> findAllByUserIdOrderByWeekStartDateDesc(
         Long userId
     );
 }

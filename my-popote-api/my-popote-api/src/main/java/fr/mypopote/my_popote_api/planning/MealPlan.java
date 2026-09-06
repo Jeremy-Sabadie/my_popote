@@ -17,59 +17,41 @@ import java.time.LocalDateTime;
 
 /**
  * Représente la planification des repas d'un utilisateur pour une semaine.
- *
- * Une seule planification peut exister pour un utilisateur
- * et une date de début de semaine données.
  */
 @Entity
 @Table(name = "meal_plan")
 public class MealPlan {
 
-    /**
-     * Identifiant technique généré automatiquement par MariaDB.
-     */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     /**
-     * Utilisateur propriétaire de cette planification.
+     * Utilisateur propriétaire du planning.
      */
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     /**
-     * Premier jour de la semaine planifiée.
-     *
-     * L'application veillera à utiliser un lundi comme date de référence.
+     * Premier jour de la semaine.
+     * My Popote utilise toujours un lundi.
      */
     @Column(name = "week_start_date", nullable = false)
     private LocalDate weekStartDate;
 
     /**
-     * Indique si le samedi et le dimanche doivent être inclus
-     * dans la planification.
+     * Indique si samedi et dimanche sont inclus.
      */
     @Column(name = "include_weekend", nullable = false)
     private boolean includeWeekend;
 
-    /**
-     * Budget maximal que l'utilisateur souhaite consacrer
-     * aux repas de la semaine.
-     */
     @Column(name = "max_budget", precision = 10, scale = 2)
     private BigDecimal maxBudget;
 
-    /**
-     * Coût estimé de l'ensemble des repas planifiés.
-     */
     @Column(name = "estimated_cost", precision = 10, scale = 2)
     private BigDecimal estimatedCost;
 
-    /**
-     * Date de création gérée directement par MariaDB.
-     */
     @Column(
         name = "created_at",
         nullable = false,
@@ -78,9 +60,6 @@ public class MealPlan {
     )
     private LocalDateTime createdAt;
 
-    /**
-     * Date de dernière modification gérée par MariaDB.
-     */
     @Column(
         name = "updated_at",
         nullable = false,
