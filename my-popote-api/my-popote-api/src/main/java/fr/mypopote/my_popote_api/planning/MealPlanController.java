@@ -1,8 +1,10 @@
 package fr.mypopote.my_popote_api.planning;
 
 import fr.mypopote.my_popote_api.planning.dto.MealPlanResponse;
+import fr.mypopote.my_popote_api.security.CurrentUserService;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -13,30 +15,35 @@ import java.util.List;
 /**
  * API REST dédiée aux plannings hebdomadaires.
  *
- * Le planning est recherché avec son utilisateur propriétaire
- * afin de préserver l'isolation des données.
+ * L'identité utilisateur provient exclusivement du JWT authentifié.
+ * Aucun userId fourni par le frontend n'est utilisé.
  */
 @RestController
-@RequestMapping("/api/users/{userId}/meal-plans")
+@RequestMapping("/api/meal-plans")
 public class MealPlanController {
 
     private final MealPlanService mealPlanService;
+    private final CurrentUserService currentUserService;
 
-    public MealPlanController(MealPlanService mealPlanService) {
+    public MealPlanController(
+        MealPlanService mealPlanService,
+        CurrentUserService currentUserService
+    ) {
         this.mealPlanService = mealPlanService;
+        this.currentUserService = currentUserService;
     }
 
     /**
-     * Recherche le planning d'un utilisateur pour une semaine donnée.
-     *
-     * Exemple :
-     * GET /api/users/1/meal-plans?weekStartDate=2026-09-07
+     * Recherche le planning de l'utilisateur connecté
+     * pour une semaine donnée.
      */
     @GetMapping
-    public MealPlanResponse findByUserAndWeek(
-        @PathVariable Long userId,
+    public MealPlanResponse findByWeek(
+        @AuthenticationPrincipal Jwt jwt,
         @RequestParam LocalDate weekStartDate
     ) {
+        Long userId = currentUserService.getUserId(jwt);
+
         MealPlan mealPlan = mealPlanService
             .findByUserAndWeek(userId, weekStartDate)
             .orElseThrow(() -> new IllegalArgumentException(
