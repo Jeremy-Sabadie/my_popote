@@ -9,13 +9,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
  * Tests unitaires du service de gestion des listes de courses.
  *
- * La génération et l'agrégation des ingrédients seront ajoutées
- * progressivement lorsque cette logique métier sera implémentée.
+ * Une liste doit toujours être recherchée avec
+ * l'identifiant de son propriétaire.
  */
 @ExtendWith(MockitoExtension.class)
 class ShoppingListServiceTest {
@@ -27,14 +28,31 @@ class ShoppingListServiceTest {
     private ShoppingListService shoppingListService;
 
     @Test
-    void shouldFindShoppingListById() {
+    void shouldFindShoppingListForAuthenticatedUser() {
+        Long shoppingListId = 1L;
+        Long userId = 42L;
+
         ShoppingList shoppingList = new ShoppingList(null);
 
-        when(shoppingListRepository.findById(1L))
-            .thenReturn(Optional.of(shoppingList));
+        when(
+            shoppingListRepository.findByIdAndMealPlanUserId(
+                shoppingListId,
+                userId
+            )
+        ).thenReturn(Optional.of(shoppingList));
 
-        ShoppingList result = shoppingListService.findById(1L);
+        ShoppingList result =
+            shoppingListService.findByIdAndUserId(
+                shoppingListId,
+                userId
+            );
 
         assertThat(result).isSameAs(shoppingList);
+
+        verify(shoppingListRepository)
+            .findByIdAndMealPlanUserId(
+                shoppingListId,
+                userId
+            );
     }
 }

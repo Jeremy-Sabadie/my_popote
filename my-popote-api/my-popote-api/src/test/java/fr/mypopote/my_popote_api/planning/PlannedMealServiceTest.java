@@ -1,6 +1,8 @@
 package fr.mypopote.my_popote_api.planning;
 
+import fr.mypopote.my_popote_api.planning.dto.PlannedMealRequest;
 import fr.mypopote.my_popote_api.recipe.Recipe;
+import fr.mypopote.my_popote_api.recipe.RecipeRepository;
 import fr.mypopote.my_popote_api.user.User;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -9,15 +11,18 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Tests unitaires de la gestion des repas placés dans le planning.
+ * Tests unitaires de la gestion des repas planifiés.
  *
- * Un PlannedMeal représente l'association entre une recette
- * et un créneau précis du planning : date + type de repas.
+ * Le service doit vérifier que le planning et la recette
+ * appartiennent bien à l'utilisateur authentifié.
  */
 @ExtendWith(MockitoExtension.class)
 class PlannedMealServiceTest {
@@ -25,11 +30,20 @@ class PlannedMealServiceTest {
     @Mock
     private PlannedMealRepository plannedMealRepository;
 
+    @Mock
+    private MealPlanRepository mealPlanRepository;
+
+    @Mock
+    private RecipeRepository recipeRepository;
+
     @InjectMocks
     private PlannedMealService plannedMealService;
 
     @Test
-    void shouldSavePlannedMeal() {
+    void shouldCreatePlannedMealForAuthenticatedUser() {
+        Long userId = 42L;
+        LocalDate mealDate = LocalDate.of(2026, 9, 7);
+
         User user = new User(
             "jeremy@example.com",
             "hashed-password",
@@ -38,7 +52,7 @@ class PlannedMealServiceTest {
 
         MealPlan mealPlan = new MealPlan(
             user,
-            LocalDate.of(2026, 9, 7),
+            mealDate,
             false,
             null,
             null
@@ -53,18 +67,34 @@ class PlannedMealServiceTest {
             null
         );
 
-        PlannedMeal plannedMeal = new PlannedMeal(
-            mealPlan,
-            recipe,
-            LocalDate.of(2026, 9, 7),
+        PlannedMealRequest request = new PlannedMealRequest(
+            10L,
+            20L,
+            mealDate,
             "LUNCH"
         );
 
-        when(plannedMealRepository.save(plannedMeal))
-            .thenReturn(plannedMeal);
+        when(mealPlanRepository.findByIdAndUserId(10L, userId))
+            .thenReturn(Optional.of(mealPlan));
 
-        PlannedMeal result = plannedMealService.save(plannedMeal);
+        when(recipeRepository.findByIdAndUserId(20L, userId))
+            .thenReturn(Optional.of(recipe));
 
-        assertThat(result).isSameAs(plannedMeal);
+        when(plannedMealRepository.save(any(PlannedMeal.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
+
+        PlannedMeal result =
+            plannedMealService.create(userId, request);
+
+        assertThat(result.getMealPlan()).isSameAs(mealPlan);
+        assertThat(result.getRecipe()).isSameAs(recipe);
+        assertThat(result.getMealDate()).isEqualTo(mealDate);
+        assertThat(result.getMealType()).isEqualTo("LUNCH");
+
+        verify(mealPlanRepository)
+            .findByIdAndUserId(10L, userId);
+
+        verify(recipeRepository)
+            .findByIdAndUserId(20L, userId);
     }
 }

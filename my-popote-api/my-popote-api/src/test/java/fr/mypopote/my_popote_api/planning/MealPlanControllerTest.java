@@ -1,12 +1,14 @@
 package fr.mypopote.my_popote_api.planning;
 
 import fr.mypopote.my_popote_api.planning.dto.MealPlanResponse;
+import fr.mypopote.my_popote_api.security.CurrentUserService;
 import fr.mypopote.my_popote_api.user.User;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.time.LocalDate;
 import java.util.Optional;
@@ -17,8 +19,8 @@ import static org.mockito.Mockito.when;
 /**
  * Tests unitaires du contrôleur des plannings.
  *
- * Un planning est recherché à partir de l'utilisateur
- * et du lundi correspondant au début de semaine.
+ * L'identité utilisateur doit provenir du JWT authentifié
+ * et jamais d'un identifiant fourni par le frontend.
  */
 @ExtendWith(MockitoExtension.class)
 class MealPlanControllerTest {
@@ -26,11 +28,17 @@ class MealPlanControllerTest {
     @Mock
     private MealPlanService mealPlanService;
 
+    @Mock
+    private CurrentUserService currentUserService;
+
+    @Mock
+    private Jwt jwt;
+
     @InjectMocks
     private MealPlanController mealPlanController;
 
     @Test
-    void shouldReturnMealPlanForUserAndWeek() {
+    void shouldReturnMealPlanForAuthenticatedUserAndWeek() {
         LocalDate weekStart = LocalDate.of(2026, 9, 7);
 
         User user = new User(
@@ -47,13 +55,19 @@ class MealPlanControllerTest {
             null
         );
 
+        when(currentUserService.getUserId(jwt))
+            .thenReturn(1L);
+
         when(mealPlanService.findByUserAndWeek(1L, weekStart))
             .thenReturn(Optional.of(mealPlan));
 
         MealPlanResponse response =
-            mealPlanController.findByUserAndWeek(1L, weekStart);
+            mealPlanController.findByWeek(jwt, weekStart);
 
-        assertThat(response.weekStartDate()).isEqualTo(weekStart);
-        assertThat(response.includeWeekend()).isFalse();
+        assertThat(response.weekStartDate())
+            .isEqualTo(weekStart);
+
+        assertThat(response.includeWeekend())
+            .isFalse();
     }
 }

@@ -3,6 +3,7 @@ package fr.mypopote.my_popote_api.recipe;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Repository d'accès aux recettes.
@@ -14,9 +15,15 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
 
     /**
      * Retourne toutes les recettes appartenant à un utilisateur donné.
-     *
-     * Spring Data JPA génère automatiquement la requête à partir
-     * du nom de la méthode.
      */
     List<Recipe> findAllByUserId(Long userId);
+
+    /**
+     * Recherche une recette uniquement si elle appartient
+     * à l'utilisateur authentifié.
+     */
+    Optional<Recipe> findByIdAndUserId(
+        Long id,
+        Long userId
+    );
 }

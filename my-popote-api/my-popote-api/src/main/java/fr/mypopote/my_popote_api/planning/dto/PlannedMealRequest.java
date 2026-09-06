@@ -6,7 +6,15 @@ import jakarta.validation.constraints.Positive;
 
 import java.time.LocalDate;
 
+/**
+ * Données nécessaires pour placer une recette
+ * dans un planning hebdomadaire.
+ */
 public record PlannedMealRequest(
+
+    @NotNull
+    @Positive
+    Long mealPlanId,
 
     @NotNull
     @Positive
