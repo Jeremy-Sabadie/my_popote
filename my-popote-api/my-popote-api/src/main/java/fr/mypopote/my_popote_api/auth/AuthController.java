@@ -13,34 +13,34 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Endpoints publics liés à l'authentification.
- *
- * Le contrôleur gère uniquement la couche HTTP :
- * - validation des données reçues ;
- * - délégation de la logique métier à AuthService ;
- * - transformation des résultats en DTO publics.
+ * Endpoints HTTP responsables de l'inscription
+ * et de la connexion des utilisateurs.
  */
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
     private final AuthService authService;
+    private final JwtService jwtService;
 
-    public AuthController(AuthService authService) {
+    public AuthController(
+        AuthService authService,
+        JwtService jwtService
+    ) {
         this.authService = authService;
+        this.jwtService = jwtService;
     }
 
     /**
-     * Crée un nouveau compte utilisateur.
-     *
-     * @Valid déclenche automatiquement Bean Validation.
-     * Une requête incorrecte est donc rejetée avec HTTP 400
-     * avant même d'atteindre AuthService.
+     * Crée un nouvel utilisateur puis lui fournit
+     * immédiatement un JWT utilisable par le frontend.
      */
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
     public AuthResponse register(
-        @Valid @RequestBody RegisterRequest request
+        @Valid
+        @RequestBody
+        RegisterRequest request
     ) {
         User user = authService.register(
             request.email(),
@@ -48,38 +48,42 @@ public class AuthController {
             request.firstName()
         );
 
-        return toResponse(user);
+        return buildAuthResponse(user);
     }
 
     /**
-     * Vérifie les identifiants de connexion.
-     *
-     * À ce stade, nous validons les identifiants mais
-     * nous ne créons pas encore de véritable authentification.
+     * Vérifie les identifiants de l'utilisateur
+     * puis génère un nouveau JWT d'accès.
      */
     @PostMapping("/login")
     public AuthResponse login(
-        @Valid @RequestBody LoginRequest request
+        @Valid
+        @RequestBody
+        LoginRequest request
     ) {
         User user = authService.authenticate(
             request.email(),
             request.password()
         );
 
-        return toResponse(user);
+        return buildAuthResponse(user);
     }
 
     /**
-     * Transforme l'entité interne en DTO public.
-     *
-     * Le passwordHash n'est volontairement jamais exposé
-     * dans les réponses de l'API.
+     * Centralise la construction de la réponse
+     * pour éviter de dupliquer la génération du token.
      */
-    private AuthResponse toResponse(User user) {
+    private AuthResponse buildAuthResponse(User user) {
+        String accessToken = jwtService.generateToken(
+            user.getId(),
+            user.getEmail()
+        );
+
         return new AuthResponse(
             user.getId(),
             user.getEmail(),
-            user.getFirstName()
+            user.getFirstName(),
+            accessToken
         );
     }
 }

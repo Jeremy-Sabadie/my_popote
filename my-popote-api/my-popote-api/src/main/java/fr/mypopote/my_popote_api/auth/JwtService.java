@@ -1,14 +1,16 @@
 package fr.mypopote.my_popote_api.auth;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
+import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
-import org.springframework.security.oauth2.jwt.JwsHeader;
+import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
@@ -22,6 +24,7 @@ import java.time.Instant;
  * Le token permet d'identifier l'utilisateur authentifié
  * sans stocker de session côté serveur.
  */
+@Service
 public class JwtService {
 
     private static final Duration TOKEN_LIFETIME =
@@ -30,48 +33,37 @@ public class JwtService {
     private final JwtEncoder jwtEncoder;
     private final JwtDecoder jwtDecoder;
 
-    private JwtService(
-        JwtEncoder jwtEncoder,
-        JwtDecoder jwtDecoder
-    ) {
-        this.jwtEncoder = jwtEncoder;
-        this.jwtDecoder = jwtDecoder;
-    }
-
     /**
-     * Construit le service à partir du secret partagé.
+     * Constructeur utilisé par Spring.
      *
-     * Cette méthode facilite également les tests avec
-     * une clé dédiée qui n'a aucun lien avec la production.
+     * Le secret JWT est fourni par la configuration
+     * et ne doit jamais être écrit directement dans le code.
      */
-    public static JwtService forSecret(String secret) {
-        SecretKey secretKey = new SecretKeySpec(
-            secret.getBytes(StandardCharsets.UTF_8),
-            "HmacSHA256"
-        );
+    public JwtService(
+        @Value("${app.jwt.secret}")
+        String secret
+    ) {
+        SecretKey secretKey = buildSecretKey(secret);
 
-        JwtEncoder encoder =
+        this.jwtEncoder =
             NimbusJwtEncoder.withSecretKey(secretKey)
                 .algorithm(MacAlgorithm.HS256)
                 .build();
 
-        JwtDecoder decoder =
+        this.jwtDecoder =
             NimbusJwtDecoder.withSecretKey(secretKey)
                 .macAlgorithm(MacAlgorithm.HS256)
                 .build();
-
-        return new JwtService(
-            encoder,
-            decoder
-        );
     }
 
     /**
-     * Génère un access token pour l'utilisateur connecté.
-     *
-     * L'identifiant utilisateur est placé dans "sub".
-     * L'email est ajouté comme information complémentaire.
+     * Fabrique pratique pour les tests unitaires
+     * avec une clé totalement indépendante de la production.
      */
+    public static JwtService forSecret(String secret) {
+        return new JwtService(secret);
+    }
+
     public String generateToken(
         Long userId,
         String email
@@ -97,14 +89,18 @@ public class JwtService {
         ).getTokenValue();
     }
 
-    /**
-     * Décode et valide un token.
-     *
-     * Cette méthode est principalement utile pour les tests.
-     * Les requêtes HTTP seront ensuite validées directement
-     * par Spring Security grâce au JwtDecoder.
-     */
     public Jwt decodeToken(String token) {
         return jwtDecoder.decode(token);
+    }
+
+    /**
+     * Construit la clé cryptographique utilisée
+     * pour signer et vérifier les JWT HS256.
+     */
+    private static SecretKey buildSecretKey(String secret) {
+        return new SecretKeySpec(
+            secret.getBytes(StandardCharsets.UTF_8),
+            "HmacSHA256"
+        );
     }
 }
