@@ -89,9 +89,13 @@ class ShoppingListServiceTest {
                 )
         ).thenReturn(Optional.of(shoppingList));
 
+        /*
+         * Le service recharge les articles de la liste après
+         * avoir vérifié que celle-ci appartient bien au user.
+         */
         when(
             shoppingItemRepository
-                .findAllByShoppingListIdOrderByIngredientNameAsc(
+                .findAllByShoppingListIdOrderByIdAsc(
                     shoppingListId
                 )
         ).thenReturn(List.of());
@@ -104,12 +108,18 @@ class ShoppingListServiceTest {
 
         assertThat(response).isNotNull();
         assertThat(response.items()).isEmpty();
+        assertThat(response.alreadyOwnedItems()).isEmpty();
 
         // Le repository doit obligatoirement filtrer par utilisateur.
         verify(shoppingListRepository)
             .findByIdAndMealPlanUserId(
                 shoppingListId,
                 userId
+            );
+
+        verify(shoppingItemRepository)
+            .findAllByShoppingListIdOrderByIdAsc(
+                shoppingListId
             );
     }
 

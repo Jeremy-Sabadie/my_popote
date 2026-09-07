@@ -15,11 +15,12 @@ import fr.mypopote.my_popote_api.planning.PlannedMeal;
 import fr.mypopote.my_popote_api.planning.PlannedMealRepository;
 import fr.mypopote.my_popote_api.recipe.Ingredient;
 import fr.mypopote.my_popote_api.recipe.RecipeIngredient;
+import fr.mypopote.my_popote_api.shopping.dto.ManualShoppingItemRequest;
 import fr.mypopote.my_popote_api.shopping.dto.ShoppingItemResponse;
 import fr.mypopote.my_popote_api.shopping.dto.ShoppingListResponse;
 
 /**
- * Gère la génération et la consultation des listes de courses.
+ * Gère la génération et la personnalisation des listes de courses.
  */
 @Service
 @Transactional(readOnly = true)
@@ -43,16 +44,17 @@ public class ShoppingListService {
     }
 
     /**
-     * Génère la liste de courses depuis un planning appartenant
-     * à l'utilisateur connecté.
+     * Génère la liste depuis le planning du user.
      *
-     * Si une liste existe déjà, son contenu est recalculé.
+     * Les ajouts manuels survivent à une régénération.
+     * Les états checked et alreadyOwned des ingrédients
+     * toujours présents sont également conservés.
      */
     @Transactional
-    public ShoppingListResponse generate(Long mealPlanId, Long userId) {
+    public ShoppingListResponse generate(
+            Long mealPlanId,
+            Long userId) {
 
-        // La recherche par userId garantit que le planning appartient
-        // bien à l'utilisateur connecté.
         MealPlan mealPlan = mealPlanRepository
             .findByIdAndUserId(mealPlanId, userId)
             .orElseThrow(() ->
@@ -65,34 +67,64 @@ public class ShoppingListService {
                     mealPlanId
                 );
 
-        // Une liste est unique pour un planning.
-        // On réutilise donc la liste existante lors d'une régénération.
         ShoppingList shoppingList = shoppingListRepository
-            .findByMealPlanIdAndMealPlanUserId(mealPlanId, userId)
+            .findByMealPlanIdAndMealPlanUserId(
+                mealPlanId,
+                userId
+            )
             .orElseGet(() -> new ShoppingList(mealPlan));
 
-        shoppingList = shoppingListRepository.save(shoppingList);
-
-        // On repart du planning actuel afin d'éviter de conserver
-        // des articles provenant d'une ancienne version de la semaine.
-        shoppingItemRepository.deleteAllByShoppingListId(
-            shoppingList.getId()
-        );
+        shoppingList =
+            shoppingListRepository.save(shoppingList);
 
         /*
-         * Clé = ingrédient + unité.
-         *
-         * Exemple :
-         * 200 g de tomate + 300 g de tomate = 500 g.
-         *
-         * On ne mélange volontairement pas des unités différentes
-         * comme "g" et "PIECE".
+         * Mémorise les choix effectués par le user avant
+         * de reconstruire les ingrédients issus des recettes.
          */
+        Map<IngredientUnitKey, ItemState> previousStates =
+            new LinkedHashMap<>();
+
+        List<ShoppingItem> existingGeneratedItems =
+            shoppingItemRepository
+                .findAllByShoppingListIdAndManualFalse(
+                    shoppingList.getId()
+                );
+
+        for (ShoppingItem item : existingGeneratedItems) {
+
+            if (item.getIngredient() == null) {
+                continue;
+            }
+
+            IngredientUnitKey key =
+                new IngredientUnitKey(
+                    item.getIngredient().getId(),
+                    item.getUnit()
+                );
+
+            previousStates.put(
+                key,
+                new ItemState(
+                    item.isChecked(),
+                    item.isAlreadyOwned()
+                )
+            );
+        }
+
+        /*
+         * Les envies manuelles ne sont pas supprimées.
+         */
+        shoppingItemRepository
+            .deleteAllByShoppingListIdAndManualFalse(
+                shoppingList.getId()
+            );
+
         Map<IngredientUnitKey, AggregatedIngredient> aggregated =
             new LinkedHashMap<>();
 
-        // Chaque apparition d'une recette dans le planning compte.
-        // Une recette prévue deux fois ajoute donc deux fois ses ingrédients.
+        /*
+         * Agrégation des quantités nécessaires aux recettes.
+         */
         for (PlannedMeal plannedMeal : plannedMeals) {
 
             for (RecipeIngredient recipeIngredient :
@@ -101,7 +133,8 @@ public class ShoppingListService {
                 Ingredient ingredient =
                     recipeIngredient.getIngredient();
 
-                String unit = recipeIngredient.getUnit();
+                String unit =
+                    recipeIngredient.getUnit();
 
                 IngredientUnitKey key =
                     new IngredientUnitKey(
@@ -125,8 +158,6 @@ public class ShoppingListService {
 
                 } else {
 
-                    // L'ingrédient existe déjà dans la liste :
-                    // on additionne simplement sa quantité.
                     aggregated.put(
                         key,
                         new AggregatedIngredient(
@@ -141,37 +172,155 @@ public class ShoppingListService {
             }
         }
 
-        List<ShoppingItem> items = new ArrayList<>();
+        List<ShoppingItem> generatedItems =
+            new ArrayList<>();
 
-        // Transformation des quantités agrégées en entités persistées.
-        for (AggregatedIngredient aggregatedIngredient :
-                aggregated.values()) {
+        for (Map.Entry<
+                IngredientUnitKey,
+                AggregatedIngredient> entry :
+                aggregated.entrySet()) {
 
-            items.add(
+            IngredientUnitKey key =
+                entry.getKey();
+
+            AggregatedIngredient value =
+                entry.getValue();
+
+            ItemState previousState =
+                previousStates.get(key);
+
+            boolean checked =
+                previousState != null
+                && previousState.checked();
+
+            boolean alreadyOwned =
+                previousState != null
+                && previousState.alreadyOwned();
+
+            generatedItems.add(
                 new ShoppingItem(
                     shoppingList,
-                    aggregatedIngredient.ingredient(),
-                    aggregatedIngredient.quantity(),
-                    aggregatedIngredient.unit(),
+                    value.ingredient(),
+                    null,
+                    value.quantity(),
+                    value.unit(),
+                    checked,
+                    alreadyOwned,
                     false
                 )
             );
         }
 
-        shoppingItemRepository.saveAll(items);
+        shoppingItemRepository.saveAll(generatedItems);
 
-        return toResponse(shoppingList, items);
+        return reloadResponse(
+            shoppingList,
+            shoppingList.getId()
+        );
     }
 
     /**
      * Récupère une liste uniquement si elle appartient
-     * à l'utilisateur connecté.
+     * au user connecté.
      */
     public ShoppingListResponse findByIdAndUserId(
             Long shoppingListId,
             Long userId) {
 
-        ShoppingList shoppingList = shoppingListRepository
+        ShoppingList shoppingList =
+            findOwnedShoppingList(
+                shoppingListId,
+                userId
+            );
+
+        return reloadResponse(
+            shoppingList,
+            shoppingListId
+        );
+    }
+
+    /**
+     * Coche ou décoche un article.
+     */
+    @Transactional
+    public ShoppingItemResponse updateChecked(
+            Long shoppingItemId,
+            Long userId,
+            boolean checked) {
+
+        ShoppingItem shoppingItem =
+            findOwnedShoppingItem(
+                shoppingItemId,
+                userId
+            );
+
+        shoppingItem.setChecked(checked);
+
+        return toItemResponse(
+            shoppingItemRepository.save(shoppingItem)
+        );
+    }
+
+    /**
+     * Gère le choix :
+     * "C'est bon, j'en ai déjà".
+     */
+    @Transactional
+    public ShoppingItemResponse updateAlreadyOwned(
+            Long shoppingItemId,
+            Long userId,
+            boolean alreadyOwned) {
+
+        ShoppingItem shoppingItem =
+            findOwnedShoppingItem(
+                shoppingItemId,
+                userId
+            );
+
+        shoppingItem.setAlreadyOwned(alreadyOwned);
+
+        if (alreadyOwned) {
+            shoppingItem.setChecked(false);
+        }
+
+        return toItemResponse(
+            shoppingItemRepository.save(shoppingItem)
+        );
+    }
+
+    /**
+     * Ajoute une envie manuelle.
+     */
+    @Transactional
+    public ShoppingItemResponse addManualItem(
+            Long shoppingListId,
+            Long userId,
+            ManualShoppingItemRequest request) {
+
+        ShoppingList shoppingList =
+            findOwnedShoppingList(
+                shoppingListId,
+                userId
+            );
+
+        ShoppingItem shoppingItem =
+            ShoppingItem.manual(
+                shoppingList,
+                request.name().trim(),
+                request.quantity(),
+                request.unit().trim().toUpperCase()
+            );
+
+        return toItemResponse(
+            shoppingItemRepository.save(shoppingItem)
+        );
+    }
+
+    private ShoppingList findOwnedShoppingList(
+            Long shoppingListId,
+            Long userId) {
+
+        return shoppingListRepository
             .findByIdAndMealPlanUserId(
                 shoppingListId,
                 userId
@@ -181,29 +330,13 @@ public class ShoppingListService {
                     "Shopping list not found"
                 )
             );
-
-        List<ShoppingItem> items =
-            shoppingItemRepository
-                .findAllByShoppingListIdOrderByIngredientNameAsc(
-                    shoppingListId
-                );
-
-        return toResponse(shoppingList, items);
     }
 
-    /**
-     * Coche ou décoche un article.
-     *
-     * La recherche passe par l'utilisateur propriétaire de la liste,
-     * ce qui empêche de modifier l'article d'un autre utilisateur.
-     */
-    @Transactional
-    public ShoppingItemResponse updateChecked(
+    private ShoppingItem findOwnedShoppingItem(
             Long shoppingItemId,
-            Long userId,
-            boolean checked) {
+            Long userId) {
 
-        ShoppingItem shoppingItem = shoppingItemRepository
+        return shoppingItemRepository
             .findByIdAndShoppingListMealPlanUserId(
                 shoppingItemId,
                 userId
@@ -213,66 +346,91 @@ public class ShoppingListService {
                     "Shopping item not found"
                 )
             );
+    }
 
-        shoppingItem.setChecked(checked);
+    private ShoppingListResponse reloadResponse(
+            ShoppingList shoppingList,
+            Long shoppingListId) {
 
-        ShoppingItem savedItem =
-            shoppingItemRepository.save(shoppingItem);
+        List<ShoppingItem> items =
+            shoppingItemRepository
+                .findAllByShoppingListIdOrderByIdAsc(
+                    shoppingListId
+                );
 
-        return toItemResponse(savedItem);
+        return toResponse(
+            shoppingList,
+            items
+        );
     }
 
     /**
-     * Transforme une entité ShoppingList en DTO destiné à l'API.
+     * Sépare les achats nécessaires des ingrédients
+     * que le user possède déjà.
      */
     private ShoppingListResponse toResponse(
             ShoppingList shoppingList,
             List<ShoppingItem> items) {
 
-        List<ShoppingItemResponse> itemResponses =
+        List<ShoppingItemResponse> itemsToBuy =
             items.stream()
+                .filter(item -> !item.isAlreadyOwned())
+                .map(this::toItemResponse)
+                .toList();
+
+        List<ShoppingItemResponse> alreadyOwnedItems =
+            items.stream()
+                .filter(ShoppingItem::isAlreadyOwned)
                 .map(this::toItemResponse)
                 .toList();
 
         return new ShoppingListResponse(
             shoppingList.getId(),
             shoppingList.getMealPlan().getId(),
-            itemResponses
+            itemsToBuy,
+            alreadyOwnedItems
         );
     }
 
-    /**
-     * Transforme une ligne de courses en DTO.
-     */
     private ShoppingItemResponse toItemResponse(
             ShoppingItem shoppingItem) {
 
+        Long ingredientId =
+            shoppingItem.getIngredient() == null
+                ? null
+                : shoppingItem.getIngredient().getId();
+
         return new ShoppingItemResponse(
             shoppingItem.getId(),
-            shoppingItem.getIngredient().getId(),
-            shoppingItem.getIngredient().getName(),
+            ingredientId,
+            shoppingItem.getDisplayName(),
             shoppingItem.getQuantity(),
             shoppingItem.getUnit(),
-            shoppingItem.isChecked()
+            shoppingItem.isChecked(),
+            shoppingItem.isAlreadyOwned(),
+            shoppingItem.isManual()
         );
     }
 
-    /**
-     * Clé technique utilisée pendant l'agrégation.
-     */
     private record IngredientUnitKey(
         Long ingredientId,
         String unit
     ) {
     }
 
-    /**
-     * Valeur temporaire utilisée avant la création des ShoppingItem.
-     */
     private record AggregatedIngredient(
         Ingredient ingredient,
         BigDecimal quantity,
         String unit
+    ) {
+    }
+
+    /**
+     * Choix utilisateur conservés lors d'une régénération.
+     */
+    private record ItemState(
+        boolean checked,
+        boolean alreadyOwned
     ) {
     }
 }

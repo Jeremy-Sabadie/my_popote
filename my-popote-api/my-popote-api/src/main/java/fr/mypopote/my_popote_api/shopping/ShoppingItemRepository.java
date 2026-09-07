@@ -6,21 +6,54 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 /**
- * Accès aux éléments d'une liste de courses.
- *
- * Les recherches utilisées par l'API tiennent compte du propriétaire
- * de la liste afin de garantir l'isolation des données entre utilisateurs.
+ * Repository des articles des listes de courses.
  */
-public interface ShoppingItemRepository extends JpaRepository<ShoppingItem, Long> {
+public interface ShoppingItemRepository
+        extends JpaRepository<ShoppingItem, Long> {
 
+    /**
+     * Retourne tous les articles d'une liste dans leur ordre de création.
+     *
+     * Cette méthode fonctionne également avec les ajouts manuels
+     * qui ne possèdent pas forcément d'Ingredient associé.
+     */
+    List<ShoppingItem> findAllByShoppingListIdOrderByIdAsc(
+        Long shoppingListId
+    );
+
+    /**
+     * Méthode historique conservée pour compatibilité.
+     *
+     * Elle reste notamment utilisée dans les tests existants.
+     */
     List<ShoppingItem> findAllByShoppingListIdOrderByIngredientNameAsc(
         Long shoppingListId
     );
 
+    /**
+     * Retourne uniquement les articles provenant
+     * automatiquement des recettes.
+     */
+    List<ShoppingItem> findAllByShoppingListIdAndManualFalse(
+        Long shoppingListId
+    );
+
+    /**
+     * Supprime uniquement les articles générés depuis les recettes.
+     *
+     * Les "petites envies" ajoutées manuellement sont ainsi
+     * conservées lors d'une régénération.
+     */
+    void deleteAllByShoppingListIdAndManualFalse(
+        Long shoppingListId
+    );
+
+    /**
+     * Recherche sécurisée d'un article appartenant
+     * à l'utilisateur connecté.
+     */
     Optional<ShoppingItem> findByIdAndShoppingListMealPlanUserId(
         Long shoppingItemId,
         Long userId
     );
-
-    void deleteAllByShoppingListId(Long shoppingListId);
 }
