@@ -1,1 +1,31 @@
-<p>header works!</p>
+<header class="header">
+
+  <a class="brand" routerLink="/today">
+
+    <span class="brand-icon">
+      <svg lucideChefHat class="icon icon-brand" aria-hidden="true"></svg>
+    </span>
+
+    <span class="brand-text">
+      My Popote
+    </span>
+
+  </a>
+
+  <nav class="desktop-secondary-nav" aria-label="Navigation secondaire">
+
+    <a routerLink="/history" routerLinkActive="active">
+      <svg lucideHistory class="icon icon-navigation" aria-hidden="true"></svg>
+
+      Historique
+    </a>
+
+    <a routerLink="/settings" routerLinkActive="active">
+      <svg lucideSettings class="icon icon-navigation" aria-hidden="true"></svg>
+
+      Paramètres
+    </a>
+
+  </nav>
+
+</header>

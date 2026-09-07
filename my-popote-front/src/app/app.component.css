@@ -1,0 +1,33 @@
+:host {
+  display: block;
+  min-height: 100dvh;
+}
+
+.app-shell {
+  min-height: 100dvh;
+  background: var(--color-background);
+}
+
+.app-content {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+
+  padding:
+    1.25rem 1rem calc(6rem + env(safe-area-inset-bottom));
+}
+
+/*
+ * À partir du format laptop, la navigation passe à gauche.
+ */
+@media (min-width: 900px) {
+
+  .app-shell {
+    padding-left: 240px;
+  }
+
+  .app-content {
+    padding:
+      2rem clamp(2rem, 4vw, 4rem) 3rem;
+  }
+}
