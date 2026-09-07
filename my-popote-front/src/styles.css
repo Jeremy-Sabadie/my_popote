@@ -1,1 +1,205 @@
-/* You can add global styles to this file, and also import other style files */
+/* =========================================================
+   MY POPOTE - DESIGN SYSTEM
+   ========================================================= */
+
+:root {
+
+  /* Couleurs principales */
+  --color-primary: #4f7d5b;
+  --color-primary-dark: #365d42;
+  --color-primary-light: #e7f0e9;
+
+  --color-background: #f7f6f1;
+  --color-surface: #ffffff;
+  --color-surface-soft: #f0f4ef;
+
+  --color-text: #20251f;
+  --color-text-soft: #687168;
+
+  --color-border: #e2e6df;
+
+  --color-danger: #b74747;
+
+  /* Formes */
+  --radius-small: 10px;
+  --radius-medium: 16px;
+  --radius-large: 22px;
+
+  /* Ombres */
+  --shadow-small:
+    0 2px 10px rgba(35, 50, 39, 0.06);
+
+  --shadow-card:
+    0 8px 28px rgba(35, 50, 39, 0.08);
+
+  /* Animations */
+  --transition-fast: 160ms ease;
+  --transition-normal: 250ms ease;
+}
+
+/* =========================================================
+   RESET
+   ========================================================= */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+}
+
+body {
+  min-height: 100%;
+  margin: 0;
+
+  background: var(--color-background);
+  color: var(--color-text);
+
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+}
+
+/* =========================================================
+   TYPOGRAPHIE
+   ========================================================= */
+
+h1,
+h2,
+h3,
+p {
+  margin-top: 0;
+}
+
+h1 {
+  margin-bottom: 0.4rem;
+
+  font-size: clamp(1.7rem, 5vw, 2.5rem);
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+}
+
+h2 {
+  font-size: 1.25rem;
+}
+
+p {
+  color: var(--color-text-soft);
+  line-height: 1.55;
+}
+
+/* =========================================================
+   COMPOSANTS GÉNÉRIQUES
+   ========================================================= */
+
+.card {
+  padding: 1rem;
+
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-medium);
+
+  box-shadow: var(--shadow-small);
+}
+
+.btn {
+  min-height: 46px;
+  padding: 0.75rem 1.1rem;
+
+  border: 0;
+  border-radius: var(--radius-small);
+
+  font-weight: 600;
+
+  transition:
+    transform var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: var(--color-primary-dark);
+}
+
+/*
+ * Les champs sont volontairement assez hauts pour rester
+ * confortables sur un écran tactile.
+ */
+.form-control {
+  width: 100%;
+  min-height: 48px;
+
+  padding: 0.75rem 0.9rem;
+
+  background: var(--color-surface);
+
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-small);
+
+  color: var(--color-text);
+}
+
+.form-control:focus {
+  border-color: var(--color-primary);
+  outline: 3px solid var(--color-primary-light);
+}
+
+/* =========================================================
+   ACCESSIBILITÉ
+   ========================================================= */
+
+:focus-visible {
+  outline: 3px solid var(--color-primary-light);
+  outline-offset: 2px;
+}
+
+/*
+ * Respecte le choix des utilisateurs qui réduisent
+ * les animations au niveau du système.
+ */
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

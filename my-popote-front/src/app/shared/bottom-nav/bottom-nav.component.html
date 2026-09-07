@@ -1,1 +1,27 @@
-<p>bottom-nav works!</p>
+<nav class="main-navigation" aria-label="Navigation principale">
+
+  <a routerLink="/today" routerLinkActive="active">
+    <svg lucideCalendarDays class="navigation-icon" aria-hidden="true"></svg>
+
+    <span>Aujourd'hui</span>
+  </a>
+
+  <a routerLink="/week" routerLinkActive="active">
+    <svg lucideCalendarRange class="navigation-icon" aria-hidden="true"></svg>
+
+    <span>Semaine</span>
+  </a>
+
+  <a routerLink="/shopping" routerLinkActive="active">
+    <svg lucideShoppingBasket class="navigation-icon" aria-hidden="true"></svg>
+
+    <span>Courses</span>
+  </a>
+
+  <a routerLink="/recipes" routerLinkActive="active">
+    <svg lucideBookOpen class="navigation-icon" aria-hidden="true"></svg>
+
+    <span>Recettes</span>
+  </a>
+
+</nav>
