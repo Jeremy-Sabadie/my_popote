@@ -5,10 +5,10 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 /**
- * Accès aux listes de courses.
+ * Repository d'accès aux listes de courses.
  *
- * Les recherches incluent toujours l'utilisateur propriétaire afin
- * d'empêcher l'accès à la liste d'un autre utilisateur.
+ * Les recherches exposées à l'API tiennent compte
+ * du propriétaire du planning.
  */
 public interface ShoppingListRepository
         extends JpaRepository<ShoppingList, Long> {
