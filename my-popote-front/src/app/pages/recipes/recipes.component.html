@@ -1,1 +1,471 @@
-<p>recipes works!</p>
+<section class="recipes-page">
+
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Ma cuisine</p>
+
+      <h1>Mes recettes</h1>
+
+      <p class="subtitle">
+        Retrouvez vos recettes et filtrez-les selon vos envies.
+      </p>
+    </div>
+
+    <button type="button" class="primary-button" (click)="openRecipeForm()">
+      + Ajouter une recette
+    </button>
+  </header>
+
+
+  <section class="filters-card" aria-labelledby="filters-title">
+
+    <div class="filters-header">
+      <div>
+        <h2 id="filters-title">Filtrer</h2>
+
+        <p>
+          Combinez plusieurs tags pour préciser votre recherche.
+        </p>
+      </div>
+
+      <button *ngIf="selectedTagIds.size > 0" type="button" class="clear-button" (click)="clearFilters()">
+        Effacer
+      </button>
+    </div>
+
+    <div *ngIf="tags.length > 0" class="tags">
+
+      <button *ngFor="let tag of tags" type="button" class="tag-filter" [class.selected]="isTagSelected(tag.id)"
+        [attr.aria-pressed]="isTagSelected(tag.id)" (click)="toggleTag(tag.id)">
+        {{ tag.name }}
+      </button>
+    </div>
+  </section>
+
+
+  <div *ngIf="loading" class="state-card" role="status">
+    Chargement des recettes…
+  </div>
+
+
+  <div *ngIf="!loading && errorMessage" class="state-card error" role="alert">
+    {{ errorMessage }}
+  </div>
+
+
+  <div *ngIf="
+      !loading &&
+      !errorMessage &&
+      recipes.length === 0
+    " class="state-card">
+
+    <h2>Aucune recette trouvée</h2>
+
+    <p *ngIf="selectedTagIds.size > 0">
+      Retirez éventuellement un filtre pour élargir les résultats.
+    </p>
+
+    <p *ngIf="selectedTagIds.size === 0">
+      Ajoutez votre première recette pour commencer votre bibliothèque.
+    </p>
+  </div>
+
+
+  <div *ngIf="
+      !loading &&
+      !errorMessage &&
+      recipes.length > 0
+    " class="recipe-grid">
+
+    <article *ngFor="let recipe of recipes" class="recipe-card">
+
+      <div class="recipe-card-header">
+        <div>
+          <h2>{{ recipe.name }}</h2>
+
+          <p class="recipe-meta">
+            {{ recipe.servings }}
+            {{
+            recipe.servings > 1
+            ? 'portions'
+            : 'portion'
+            }}
+          </p>
+        </div>
+
+        <strong *ngIf="recipe.estimatedCost !== null" class="price">
+          {{ recipe.estimatedCost | number:'1.2-2' }} €
+        </strong>
+      </div>
+
+
+      <div *ngIf="recipe.tags.length > 0" class="recipe-tags">
+
+        <span *ngFor="let tag of recipe.tags" class="recipe-tag">
+          {{ tag.name }}
+        </span>
+      </div>
+
+
+      <div *ngIf="recipe.seasons.length > 0" class="seasons">
+
+        <span *ngFor="let season of recipe.seasons">
+          {{ seasonLabel(season) }}
+        </span>
+      </div>
+
+
+      <div class="recipe-footer">
+        <span>
+          {{ recipe.ingredients.length }}
+          {{
+          recipe.ingredients.length > 1
+          ? 'ingrédients'
+          : 'ingrédient'
+          }}
+        </span>
+
+        <button type="button" class="secondary-button" (click)="viewRecipe(recipe)">
+          Voir la recette
+        </button>
+      </div>
+
+    </article>
+  </div>
+
+</section>
+
+
+<!-- Modale de consultation / édition -->
+
+<div *ngIf="modalOpen" class="modal-backdrop">
+
+  <section class="recipe-modal" role="dialog" aria-modal="true">
+
+    <!-- Consultation d'une recette -->
+
+    <ng-container *ngIf="selectedRecipe && !showRecipeForm">
+
+      <header class="modal-header">
+        <div>
+          <p class="eyebrow">Recette</p>
+          <h2>{{ selectedRecipe.name }}</h2>
+        </div>
+
+        <button type="button" class="close-button" aria-label="Fermer" (click)="closeModal()">
+          ×
+        </button>
+      </header>
+
+
+      <div class="modal-body">
+
+        <div class="recipe-summary">
+          <span>
+            {{ selectedRecipe.servings }}
+            {{
+            selectedRecipe.servings > 1
+            ? 'portions'
+            : 'portion'
+            }}
+          </span>
+
+          <strong *ngIf="selectedRecipe.estimatedCost !== null">
+            {{ selectedRecipe.estimatedCost | number:'1.2-2' }} €
+          </strong>
+        </div>
+
+
+        <div *ngIf="selectedRecipe.tags.length > 0" class="recipe-tags">
+
+          <span *ngFor="let tag of selectedRecipe.tags" class="recipe-tag">
+            {{ tag.name }}
+          </span>
+        </div>
+
+
+        <div *ngIf="selectedRecipe.seasons.length > 0" class="seasons">
+
+          <span *ngFor="let season of selectedRecipe.seasons">
+            {{ seasonLabel(season) }}
+          </span>
+        </div>
+
+
+        <section class="detail-section">
+          <h3>Ingrédients</h3>
+
+          <ul class="ingredient-detail-list">
+
+            <li *ngFor="let ingredient of selectedRecipe.ingredients">
+
+              <span>
+                {{ ingredient.ingredientName }}
+              </span>
+
+              <strong>
+                {{ ingredient.quantity }} {{ ingredient.unit }}
+              </strong>
+
+            </li>
+
+          </ul>
+        </section>
+
+
+        <section *ngIf="selectedRecipe.instructions" class="detail-section">
+
+          <h3>Préparation</h3>
+
+          <p class="instructions">
+            {{ selectedRecipe.instructions }}
+          </p>
+        </section>
+
+      </div>
+
+
+      <footer class="modal-footer">
+
+        <button type="button" class="danger-button" (click)="deleteRecipe(selectedRecipe)">
+          Supprimer
+        </button>
+
+        <button type="button" class="primary-button" (click)="editRecipe(selectedRecipe)">
+          Modifier
+        </button>
+
+      </footer>
+
+    </ng-container>
+
+
+    <!-- Création / modification -->
+
+    <ng-container *ngIf="showRecipeForm">
+
+      <header class="modal-header">
+        <div>
+          <p class="eyebrow">
+            {{
+            editingRecipe
+            ? 'Modification'
+            : 'Nouvelle recette'
+            }}
+          </p>
+
+          <h2>
+            {{
+            editingRecipe
+            ? 'Modifier la recette'
+            : 'Ajouter une recette'
+            }}
+          </h2>
+        </div>
+
+        <button type="button" class="close-button" aria-label="Fermer" (click)="closeModal()">
+          ×
+        </button>
+      </header>
+
+
+      <form [formGroup]="recipeForm" (ngSubmit)="saveRecipe()" class="modal-form" novalidate>
+
+        <div class="modal-body">
+
+          <div class="form-grid">
+
+            <div class="field field-wide">
+              <label for="recipe-name">
+                Nom
+              </label>
+
+              <input id="recipe-name" type="text" formControlName="name" placeholder="Ex. Poulet curry et riz" />
+            </div>
+
+
+            <div class="field">
+              <label for="servings">
+                Portions
+              </label>
+
+              <input id="servings" type="number" min="1" formControlName="servings" />
+            </div>
+
+
+            <div class="field">
+              <label for="estimated-cost">
+                Coût estimé
+                <span class="optional">
+                  Facultatif
+                </span>
+              </label>
+
+              <div class="input-with-unit">
+                <input id="estimated-cost" type="number" min="0" step="0.01" formControlName="estimatedCost" />
+
+                <span>€</span>
+              </div>
+            </div>
+
+          </div>
+
+
+          <fieldset class="choice-section">
+            <legend>Saisonnalité</legend>
+
+            <div class="choice-list">
+              <button *ngFor="let season of seasons" type="button" class="choice-chip"
+                [class.selected]="isSeasonSelected(season.value)" (click)="toggleSeason(season.value)">
+                {{ season.label }}
+              </button>
+            </div>
+          </fieldset>
+
+
+          <fieldset *ngIf="tags.length > 0" class="choice-section">
+
+            <legend>
+              Tags
+              <span class="optional">
+                Facultatif
+              </span>
+            </legend>
+
+            <div class="choice-list">
+              <button *ngFor="let tag of tags" type="button" class="choice-chip"
+                [class.selected]="isRecipeTagSelected(tag.id)" (click)="toggleRecipeTag(tag.id)">
+                {{ tag.name }}
+              </button>
+            </div>
+          </fieldset>
+
+
+          <section class="ingredients-section">
+
+            <div class="section-heading">
+              <div>
+                <h3>Ingrédients</h3>
+              </div>
+
+              <button type="button" class="secondary-button" (click)="addIngredient()">
+                + Ajouter
+              </button>
+            </div>
+
+
+            <div formArrayName="ingredients" class="ingredient-list">
+
+              <div *ngFor="
+                  let ingredient of ingredients.controls;
+                  let i = index
+                " [formGroupName]="i" class="ingredient-row">
+
+                <div class="field ingredient-name">
+                  <label [for]="'ingredient-' + i">
+                    Ingrédient
+                  </label>
+
+                  <input [id]="'ingredient-' + i" type="text" formControlName="ingredientName" placeholder="Ex. Riz" />
+                </div>
+
+
+                <div class="field">
+                  <label [for]="'quantity-' + i">
+                    Quantité
+                  </label>
+
+                  <input [id]="'quantity-' + i" type="number" min="0.01" step="0.01" formControlName="quantity"
+                    placeholder="Ex. 200" />
+                </div>
+
+
+                <!--
+                  L'unité est choisie dans une liste fermée.
+                  Cela évite les variantes comme g, gr, gramme...
+                  qui compliqueraient ensuite l'agrégation des courses.
+                -->
+                <div class="field">
+                  <label [for]="'unit-' + i">
+                    Unité
+                  </label>
+
+                  <select [id]="'unit-' + i" formControlName="unit">
+
+                    <option value="" disabled>
+                      Choisissez une unité
+                    </option>
+
+                    <option value="g">g</option>
+                    <option value="kg">kg</option>
+                    <option value="ml">ml</option>
+                    <option value="cl">cl</option>
+                    <option value="L">L</option>
+                    <option value="unité">unité</option>
+                    <option value="tranche">tranche</option>
+                    <option value="c. à café">cuillère à café</option>
+                    <option value="c. à soupe">cuillère à soupe</option>
+                    <option value="pincée">pincée</option>
+
+                  </select>
+                </div>
+
+
+                <button type="button" class="remove-button" aria-label="Supprimer cet ingrédient"
+                  [disabled]="ingredients.length === 1" (click)="removeIngredient(i)">
+                  ×
+                </button>
+
+              </div>
+
+            </div>
+
+          </section>
+
+
+          <div class="field instructions-field">
+            <label for="instructions">
+              Préparation
+              <span class="optional">
+                Facultatif
+              </span>
+            </label>
+
+            <textarea id="instructions" rows="5" formControlName="instructions"
+              placeholder="Décrivez les étapes de préparation…"></textarea>
+          </div>
+
+
+          <p *ngIf="formErrorMessage" class="form-error" role="alert">
+            {{ formErrorMessage }}
+          </p>
+
+        </div>
+
+
+        <!-- Toujours visible pendant le défilement -->
+
+        <footer class="modal-footer sticky-actions">
+
+          <button type="button" class="cancel-button" [disabled]="saving" (click)="cancelForm()">
+            Annuler
+          </button>
+
+          <button type="submit" class="primary-button" [disabled]="saving">
+            {{
+            saving
+            ? 'Enregistrement…'
+            : editingRecipe
+            ? 'Enregistrer'
+            : 'Ajouter la recette'
+            }}
+          </button>
+
+        </footer>
+
+      </form>
+
+    </ng-container>
+
+  </section>
+</div>

@@ -171,6 +171,11 @@ public class RecipeService {
 
     /**
      * Modifie uniquement une recette appartenant à l'utilisateur connecté.
+     *
+     * Les anciennes associations sont supprimées et synchronisées avec
+     * la base avant de créer les nouvelles. Cela évite qu'une association
+     * identique soit temporairement présente deux fois lors du flush
+     * Hibernate et déclenche la contrainte unique de recipe_ingredient.
      */
     @Transactional
     public RecipeResponse update(
@@ -186,9 +191,22 @@ public class RecipeService {
         recipe.setEstimatedCost(request.estimatedCost());
         recipe.setInstructions(request.instructions());
 
+        /*
+         * On supprime d'abord les anciennes associations.
+         */
         recipe.clearIngredients();
         recipe.clearSeasons();
         recipe.clearTags();
+
+        /*
+         * Le flush force Hibernate à exécuter les DELETE maintenant.
+         *
+         * Sans ce flush, Hibernate peut tenter d'insérer les nouvelles
+         * associations avant d'avoir supprimé les anciennes, ce qui
+         * provoque notamment uk_recipe_ingredient sur un ingrédient
+         * conservé pendant une modification.
+         */
+        recipeRepository.flush();
 
         applyIngredients(recipe, request.ingredients());
         applySeasons(recipe, request.seasons());
@@ -311,7 +329,11 @@ public class RecipeService {
                         tag.getGroupName()
                     )
                 )
-                .collect(Collectors.toCollection(LinkedHashSet::new));
+                .collect(
+                    Collectors.toCollection(
+                        LinkedHashSet::new
+                    )
+                );
 
         return new RecipeResponse(
             recipe.getId(),
