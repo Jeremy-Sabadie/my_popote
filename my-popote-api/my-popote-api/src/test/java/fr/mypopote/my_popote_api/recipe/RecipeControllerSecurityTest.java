@@ -47,6 +47,7 @@ class RecipeControllerSecurityTest {
             recipeService.findAllByUserId(
                 42L,
                 null,
+                null,
                 null
             )
         ).thenReturn(List.of());
@@ -62,6 +63,7 @@ class RecipeControllerSecurityTest {
         verify(recipeService)
             .findAllByUserId(
                 42L,
+                null,
                 null,
                 null
             );
