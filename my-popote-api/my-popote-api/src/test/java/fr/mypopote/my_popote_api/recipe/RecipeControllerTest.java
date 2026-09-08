@@ -58,6 +58,7 @@ class RecipeControllerTest {
             recipeService.findAllByUserId(
                 1L,
                 null,
+                null,
                 null
             )
         ).thenReturn(List.of(recipe));
@@ -66,11 +67,44 @@ class RecipeControllerTest {
             recipeController.findAll(
                 jwt,
                 null,
+                null,
                 null
             );
 
         assertThat(response)
             .containsExactly(recipe);
+    }
+
+    @Test
+    void shouldForwardTagFiltersForAuthenticatedUser() {
+        Set<Long> tagIds = Set.of(2L, 5L);
+
+        when(currentUserService.getUserId(jwt))
+            .thenReturn(1L);
+
+        when(
+            recipeService.findAllByUserId(
+                1L,
+                null,
+                null,
+                tagIds
+            )
+        ).thenReturn(List.of());
+
+        recipeController.findAll(
+            jwt,
+            null,
+            null,
+            tagIds
+        );
+
+        verify(recipeService)
+            .findAllByUserId(
+                1L,
+                null,
+                null,
+                tagIds
+            );
     }
 
     @Test

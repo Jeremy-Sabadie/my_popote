@@ -12,6 +12,34 @@ public record RecipeResponse(
     BigDecimal estimatedCost,
     String instructions,
     List<RecipeIngredientResponse> ingredients,
-    Set<String> seasons
+    Set<String> seasons,
+    Set<TagResponse> tags
 ) {
+
+    /**
+     * Constructeur conservé temporairement pour les tests et usages
+     * qui n'exploitent pas encore le nouveau système de tags.
+     */
+    public RecipeResponse(
+        Long id,
+        String name,
+        String category,
+        Integer servings,
+        BigDecimal estimatedCost,
+        String instructions,
+        List<RecipeIngredientResponse> ingredients,
+        Set<String> seasons
+    ) {
+        this(
+            id,
+            name,
+            category,
+            servings,
+            estimatedCost,
+            instructions,
+            ingredients,
+            seasons,
+            Set.of()
+        );
+    }
 }

@@ -4,11 +4,13 @@ import fr.mypopote.my_popote_api.recipe.dto.RecipeIngredientRequest;
 import fr.mypopote.my_popote_api.recipe.dto.RecipeIngredientResponse;
 import fr.mypopote.my_popote_api.recipe.dto.RecipeRequest;
 import fr.mypopote.my_popote_api.recipe.dto.RecipeResponse;
+import fr.mypopote.my_popote_api.recipe.dto.TagResponse;
 import fr.mypopote.my_popote_api.user.User;
 import fr.mypopote.my_popote_api.user.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -26,24 +28,31 @@ public class RecipeService {
     private final RecipeRepository recipeRepository;
     private final UserRepository userRepository;
     private final IngredientService ingredientService;
+    private final TagRepository tagRepository;
 
     public RecipeService(
         RecipeRepository recipeRepository,
         UserRepository userRepository,
-        IngredientService ingredientService
+        IngredientService ingredientService,
+        TagRepository tagRepository
     ) {
         this.recipeRepository = recipeRepository;
         this.userRepository = userRepository;
         this.ingredientService = ingredientService;
+        this.tagRepository = tagRepository;
     }
 
     /**
      * Retourne les recettes de l'utilisateur avec filtres facultatifs.
+     *
+     * Plusieurs tags utilisent une logique AND :
+     * la recette doit posséder tous les tags demandés.
      */
     public List<RecipeResponse> findAllByUserId(
         Long userId,
         String category,
-        String season
+        String season,
+        Set<Long> tagIds
     ) {
         List<Recipe> recipes;
 
@@ -71,9 +80,48 @@ public class RecipeService {
             recipes = recipeRepository.findAllByUserId(userId);
         }
 
+        if (tagIds != null && !tagIds.isEmpty()) {
+            Set<Long> normalizedTagIds =
+                new LinkedHashSet<>(tagIds);
+
+            Set<Long> matchingRecipeIds =
+                recipeRepository
+                    .findAllByUserIdAndAllTagIds(
+                        userId,
+                        normalizedTagIds,
+                        normalizedTagIds.size()
+                    )
+                    .stream()
+                    .map(Recipe::getId)
+                    .collect(Collectors.toSet());
+
+            recipes = recipes.stream()
+                .filter(recipe ->
+                    matchingRecipeIds.contains(recipe.getId())
+                )
+                .toList();
+        }
+
         return recipes.stream()
             .map(this::toResponse)
             .toList();
+    }
+
+    /**
+     * Compatibilité avec les appels qui utilisent uniquement
+     * les anciens filtres catégorie et saison.
+     */
+    public List<RecipeResponse> findAllByUserId(
+        Long userId,
+        String category,
+        String season
+    ) {
+        return findAllByUserId(
+            userId,
+            category,
+            season,
+            Set.of()
+        );
     }
 
     /**
@@ -116,6 +164,7 @@ public class RecipeService {
 
         applyIngredients(recipe, request.ingredients());
         applySeasons(recipe, request.seasons());
+        applyTags(recipe, request.tagIds());
 
         return toResponse(recipeRepository.save(recipe));
     }
@@ -139,9 +188,11 @@ public class RecipeService {
 
         recipe.clearIngredients();
         recipe.clearSeasons();
+        recipe.clearTags();
 
         applyIngredients(recipe, request.ingredients());
         applySeasons(recipe, request.seasons());
+        applyTags(recipe, request.tagIds());
 
         return toResponse(recipeRepository.save(recipe));
     }
@@ -201,6 +252,32 @@ public class RecipeService {
     }
 
     /**
+     * Associe les tags sélectionnés à la recette.
+     *
+     * Les tags doivent obligatoirement exister dans le référentiel.
+     */
+    private void applyTags(
+        Recipe recipe,
+        Set<Long> tagIds
+    ) {
+        if (tagIds.isEmpty()) {
+            return;
+        }
+
+        Set<Long> uniqueTagIds =
+            new LinkedHashSet<>(tagIds);
+
+        List<Tag> tags =
+            tagRepository.findAllById(uniqueTagIds);
+
+        if (tags.size() != uniqueTagIds.size()) {
+            throw new IllegalArgumentException("Tag not found");
+        }
+
+        tags.forEach(recipe::addTag);
+    }
+
+    /**
      * Transforme l'entité JPA en DTO REST.
      */
     private RecipeResponse toResponse(Recipe recipe) {
@@ -224,6 +301,18 @@ public class RecipeService {
                 .map(RecipeSeason::getSeason)
                 .collect(Collectors.toSet());
 
+        Set<TagResponse> tags =
+            recipe.getTags()
+                .stream()
+                .map(tag ->
+                    new TagResponse(
+                        tag.getId(),
+                        tag.getName(),
+                        tag.getGroupName()
+                    )
+                )
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+
         return new RecipeResponse(
             recipe.getId(),
             recipe.getName(),
@@ -232,7 +321,8 @@ public class RecipeService {
             recipe.getEstimatedCost(),
             recipe.getInstructions(),
             ingredients,
-            seasons
+            seasons,
+            tags
         );
     }
 }

@@ -17,6 +17,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -35,6 +36,9 @@ class RecipeServiceTest {
 
     @Mock
     private IngredientService ingredientService;
+
+    @Mock
+    private TagRepository tagRepository;
 
     @InjectMocks
     private RecipeService recipeService;
@@ -62,34 +66,56 @@ class RecipeServiceTest {
         List<Recipe> result =
             recipeService.findAllByUserId(1L);
 
-        assertThat(result).containsExactly(recipe);
+        assertThat(result)
+            .containsExactly(recipe);
     }
 
     @Test
-    void shouldCreateRecipeWithIngredientsAndSeasons() {
+    void shouldCreateRecipeWithIngredientsSeasonsAndTags() {
         User user = new User(
             "jeremy@example.com",
             "hashed-password",
             "Jérémy"
         );
 
-        Ingredient chicken = new Ingredient("Poulet");
+        Ingredient chicken =
+            new Ingredient("Poulet");
 
-        RecipeRequest request = new RecipeRequest(
-            "Poulet curry",
-            "meat",
-            2,
-            new BigDecimal("8.50"),
-            "Faire cuire le poulet.",
-            List.of(
-                new RecipeIngredientRequest(
-                    "Poulet",
-                    new BigDecimal("300"),
-                    "g"
+        Tag proteinTag =
+            new Tag(
+                "Riche en protéines",
+                "NUTRITION"
+            );
+
+        Tag quickTag =
+            new Tag(
+                "Rapide",
+                "PRACTICAL"
+            );
+
+        RecipeRequest request =
+            new RecipeRequest(
+                "Poulet curry",
+                "meat",
+                2,
+                new BigDecimal("8.50"),
+                "Faire cuire le poulet.",
+                List.of(
+                    new RecipeIngredientRequest(
+                        "Poulet",
+                        new BigDecimal("300"),
+                        "g"
+                    )
+                ),
+                Set.of(
+                    "winter",
+                    "autumn"
+                ),
+                Set.of(
+                    1L,
+                    2L
                 )
-            ),
-            Set.of("winter", "autumn")
-        );
+            );
 
         when(userRepository.findById(1L))
             .thenReturn(Optional.of(user));
@@ -97,11 +123,22 @@ class RecipeServiceTest {
         when(ingredientService.findOrCreate("Poulet"))
             .thenReturn(chicken);
 
+        when(tagRepository.findAllById(Set.of(1L, 2L)))
+            .thenReturn(
+                List.of(
+                    proteinTag,
+                    quickTag
+                )
+            );
+
         when(recipeRepository.save(any(Recipe.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
 
         RecipeResponse result =
-            recipeService.create(request, 1L);
+            recipeService.create(
+                request,
+                1L
+            );
 
         assertThat(result.name())
             .isEqualTo("Poulet curry");
@@ -117,10 +154,17 @@ class RecipeServiceTest {
                 "WINTER",
                 "AUTUMN"
             );
+
+        assertThat(result.tags())
+            .extracting(tag -> tag.name())
+            .containsExactlyInAnyOrder(
+                "Riche en protéines",
+                "Rapide"
+            );
     }
 
     @Test
-    void shouldUpdateOnlyOwnedRecipe() {
+    void shouldUpdateOnlyOwnedRecipeWithTags() {
         User user = new User(
             "jeremy@example.com",
             "hashed-password",
@@ -136,29 +180,43 @@ class RecipeServiceTest {
             null
         );
 
-        Ingredient tomato = new Ingredient("Tomate");
+        Ingredient tomato =
+            new Ingredient("Tomate");
 
-        RecipeRequest request = new RecipeRequest(
-            "Nouveau nom",
-            "vegetarian",
-            4,
-            new BigDecimal("5.00"),
-            "Nouvelles instructions",
-            List.of(
-                new RecipeIngredientRequest(
-                    "Tomate",
-                    new BigDecimal("2"),
-                    "piece"
-                )
-            ),
-            Set.of("summer")
-        );
+        Tag vegetarianTag =
+            new Tag(
+                "Végétarien",
+                "DIET"
+            );
+
+        RecipeRequest request =
+            new RecipeRequest(
+                "Nouveau nom",
+                "vegetarian",
+                4,
+                new BigDecimal("5.00"),
+                "Nouvelles instructions",
+                List.of(
+                    new RecipeIngredientRequest(
+                        "Tomate",
+                        new BigDecimal("2"),
+                        "piece"
+                    )
+                ),
+                Set.of("summer"),
+                Set.of(3L)
+            );
 
         when(recipeRepository.findByIdAndUserId(10L, 1L))
             .thenReturn(Optional.of(recipe));
 
         when(ingredientService.findOrCreate("Tomate"))
             .thenReturn(tomato);
+
+        when(tagRepository.findAllById(Set.of(3L)))
+            .thenReturn(
+                List.of(vegetarianTag)
+            );
 
         when(recipeRepository.save(recipe))
             .thenReturn(recipe);
@@ -181,6 +239,58 @@ class RecipeServiceTest {
 
         assertThat(result.seasons())
             .containsExactly("SUMMER");
+
+        assertThat(result.tags())
+            .extracting(tag -> tag.name())
+            .containsExactly("Végétarien");
+    }
+
+    @Test
+    void shouldRejectUnknownTag() {
+        User user = new User(
+            "jeremy@example.com",
+            "hashed-password",
+            "Jérémy"
+        );
+
+        Ingredient chicken =
+            new Ingredient("Poulet");
+
+        RecipeRequest request =
+            new RecipeRequest(
+                "Poulet curry",
+                "meat",
+                2,
+                null,
+                null,
+                List.of(
+                    new RecipeIngredientRequest(
+                        "Poulet",
+                        new BigDecimal("300"),
+                        "g"
+                    )
+                ),
+                Set.of("winter"),
+                Set.of(999L)
+            );
+
+        when(userRepository.findById(1L))
+            .thenReturn(Optional.of(user));
+
+        when(ingredientService.findOrCreate("Poulet"))
+            .thenReturn(chicken);
+
+        when(tagRepository.findAllById(Set.of(999L)))
+            .thenReturn(List.of());
+
+        assertThatThrownBy(() ->
+            recipeService.create(
+                request,
+                1L
+            )
+        )
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Tag not found");
     }
 
     @Test
@@ -203,8 +313,12 @@ class RecipeServiceTest {
         when(recipeRepository.findByIdAndUserId(10L, 1L))
             .thenReturn(Optional.of(recipe));
 
-        recipeService.delete(10L, 1L);
+        recipeService.delete(
+            10L,
+            1L
+        );
 
-        verify(recipeRepository).delete(recipe);
+        verify(recipeRepository)
+            .delete(recipe);
     }
 }

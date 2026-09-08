@@ -18,6 +18,10 @@ public record RecipeRequest(
     @Size(max = 150)
     String name,
 
+    /**
+     * Catégorie historique conservée pendant la transition
+     * vers les tags multiples.
+     */
     @NotBlank
     @Size(max = 50)
     String category,
@@ -40,7 +44,41 @@ public record RecipeRequest(
         @NotBlank
         @Size(max = 20)
         String
-    > seasons
+    > seasons,
+
+    /**
+     * Identifiants des tags sélectionnés dans le référentiel.
+     *
+     * Un ensemble vide reste autorisé afin qu'une recette puisse
+     * temporairement ne posséder aucun tag.
+     */
+    @NotNull
+    Set<@NotNull Long> tagIds
 
 ) {
+
+    /**
+     * Constructeur conservé temporairement pour les anciens appels
+     * qui ne transmettent pas encore de tags.
+     */
+    public RecipeRequest(
+        String name,
+        String category,
+        Integer servings,
+        BigDecimal estimatedCost,
+        String instructions,
+        List<RecipeIngredientRequest> ingredients,
+        Set<String> seasons
+    ) {
+        this(
+            name,
+            category,
+            servings,
+            estimatedCost,
+            instructions,
+            ingredients,
+            seasons,
+            Set.of()
+        );
+    }
 }

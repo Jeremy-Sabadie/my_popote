@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * API REST dédiée à la gestion des recettes.
@@ -47,20 +48,23 @@ public class RecipeController {
      * /api/recipes
      * /api/recipes?category=MEAT
      * /api/recipes?season=SUMMER
-     * /api/recipes?category=SALAD&season=SUMMER
+     * /api/recipes?tagIds=2,5
+     * /api/recipes?season=SUMMER&tagIds=2,5
      */
     @GetMapping
     public List<RecipeResponse> findAll(
         @AuthenticationPrincipal Jwt jwt,
         @RequestParam(required = false) String category,
-        @RequestParam(required = false) String season
+        @RequestParam(required = false) String season,
+        @RequestParam(required = false) Set<Long> tagIds
     ) {
         Long userId = currentUserService.getUserId(jwt);
 
         return recipeService.findAllByUserId(
             userId,
             category,
-            season
+            season,
+            tagIds
         );
     }
 
