@@ -1,1 +1,59 @@
-<p>settings works!</p>
+<section class="profile-page">
+
+  <header class="profile-header">
+    <p class="eyebrow">
+      Mon compte
+    </p>
+
+    <h1>
+      Mon profil
+    </h1>
+
+    <p>
+      Retrouvez les informations associées à votre compte My Popote.
+    </p>
+  </header>
+
+  <section class="profile-card">
+
+    <div class="profile-field">
+      <span class="field-label">
+        Prénom
+      </span>
+
+      <strong>
+        {{ user?.firstName }}
+      </strong>
+    </div>
+
+    <div class="profile-field">
+      <span class="field-label">
+        Adresse e-mail
+      </span>
+
+      <strong>
+        {{ user?.email }}
+      </strong>
+    </div>
+
+  </section>
+
+  <section class="session-card">
+
+    <div>
+      <h2>
+        Session
+      </h2>
+
+      <p>
+        Vous êtes actuellement connecté à My Popote.
+      </p>
+    </div>
+
+    <button type="button" class="logout-button" (click)="logout()">
+      Se déconnecter
+    </button>
+
+  </section>
+
+</section>

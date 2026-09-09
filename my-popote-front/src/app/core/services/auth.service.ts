@@ -10,10 +10,12 @@ import {
 import { environment } from '../../../environments/environment';
 
 /**
- * Centralise l'authentification de l'utilisateur.
+ * Centralise l'authentification et les informations
+ * de l'utilisateur connecté.
  *
- * Le JWT est volontairement conservé en mémoire pour éviter
- * de stocker durablement le token dans le navigateur.
+ * Le JWT reste volontairement conservé en mémoire :
+ * aucune donnée d'authentification sensible n'est persistée
+ * dans le stockage du navigateur.
  */
 @Injectable({
   providedIn: 'root',
@@ -22,33 +24,32 @@ export class AuthService {
   private readonly authUrl = `${environment.apiUrl}/api/auth`;
 
   private accessToken: string | null = null;
+  private currentUser: AuthResponse | null = null;
 
   constructor(private readonly http: HttpClient) {}
 
   /**
-   * Authentifie l'utilisateur puis conserve le JWT
-   * retourné par l'API.
+   * Authentifie l'utilisateur et initialise sa session locale.
    */
   login(request: LoginRequest): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.authUrl}/login`, request).pipe(
-      tap((response) => {
-        this.accessToken = response.accessToken;
-      }),
-    );
+    return this.http
+      .post<AuthResponse>(`${this.authUrl}/login`, request)
+      .pipe(
+        tap((response) => {
+          this.storeSession(response);
+        }),
+      );
   }
 
   /**
-   * Crée le compte puis conserve directement le JWT.
-   *
-   * L'API connecte ainsi l'utilisateur immédiatement
-   * après son inscription.
+   * Crée le compte puis initialise directement la session.
    */
   register(request: RegisterRequest): Observable<AuthResponse> {
     return this.http
       .post<AuthResponse>(`${this.authUrl}/register`, request)
       .pipe(
         tap((response) => {
-          this.accessToken = response.accessToken;
+          this.storeSession(response);
         }),
       );
   }
@@ -61,16 +62,36 @@ export class AuthService {
   }
 
   /**
-   * Indique si un JWT est actuellement présent.
+   * Retourne les informations de l'utilisateur connecté.
+   */
+  getCurrentUser(): AuthResponse | null {
+    return this.currentUser;
+  }
+
+  /**
+   * Indique si une session authentifiée existe actuellement.
    */
   isAuthenticated(): boolean {
     return this.accessToken !== null;
   }
 
   /**
-   * Supprime l'authentification locale.
+   * Déconnecte localement l'utilisateur.
+   *
+   * Le JWT et les informations associées à la session
+   * sont supprimés ensemble.
    */
   logout(): void {
     this.accessToken = null;
+    this.currentUser = null;
+  }
+
+  /**
+   * Centralise l'initialisation de la session pour éviter
+   * de dupliquer cette logique entre connexion et inscription.
+   */
+  private storeSession(response: AuthResponse): void {
+    this.accessToken = response.accessToken;
+    this.currentUser = response;
   }
 }

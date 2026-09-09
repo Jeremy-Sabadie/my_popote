@@ -1,65 +1,107 @@
 <section class="auth-page">
   <div class="auth-card">
+
     <header>
       <p class="eyebrow">My Popote</p>
+
       <h1>Créer mon compte</h1>
+
       <p class="subtitle">
-        Quelques informations suffisent pour commencer.
+        Quelques informations suffisent pour commencer
+        à organiser vos repas.
       </p>
     </header>
 
-    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <form
+      [formGroup]="form"
+      (ngSubmit)="submit()"
+      novalidate>
+
       <div class="field">
-        <label for="firstName">Prénom</label>
+        <label for="firstName">
+          Prénom
+        </label>
 
-        <input id="firstName" type="text" formControlName="firstName" autocomplete="given-name" />
+        <input
+          id="firstName"
+          type="text"
+          formControlName="firstName"
+          autocomplete="given-name" />
 
-        <small *ngIf="
+        <small
+          *ngIf="
             form.controls.firstName.touched &&
             form.controls.firstName.invalid
-          " class="field-error">
+          "
+          class="field-error">
           Le prénom est obligatoire.
         </small>
       </div>
 
       <div class="field">
-        <label for="email">Adresse e-mail</label>
+        <label for="email">
+          Adresse e-mail
+        </label>
 
-        <input id="email" type="email" formControlName="email" autocomplete="email" inputmode="email" />
+        <input
+          id="email"
+          type="email"
+          formControlName="email"
+          autocomplete="email"
+          inputmode="email" />
 
-        <small *ngIf="
+        <small
+          *ngIf="
             form.controls.email.touched &&
             form.controls.email.invalid
-          " class="field-error">
-          Saisis une adresse e-mail valide.
+          "
+          class="field-error">
+          Saisissez une adresse e-mail valide.
         </small>
       </div>
 
       <div class="field">
-        <label for="password">Mot de passe</label>
+        <label for="password">
+          Mot de passe
+        </label>
 
-        <input id="password" type="password" formControlName="password" autocomplete="new-password" />
+        <input
+          id="password"
+          type="password"
+          formControlName="password"
+          autocomplete="new-password" />
 
-        <small *ngIf="
+        <small
+          *ngIf="
             form.controls.password.touched &&
             form.controls.password.invalid
-          " class="field-error">
-          Utilise au moins 8 caractères.
+          "
+          class="field-error">
+          Utilisez au moins 8 caractères.
         </small>
       </div>
 
-      <p *ngIf="errorMessage" class="auth-error" role="alert">
+      <p
+        *ngIf="errorMessage"
+        class="auth-error"
+        role="alert">
         {{ errorMessage }}
       </p>
 
-      <button type="submit" class="primary-button" [disabled]="loading">
+      <button
+        type="submit"
+        class="primary-button"
+        [disabled]="loading">
         {{ loading ? 'Création…' : 'Créer mon compte' }}
       </button>
     </form>
 
     <p class="switch-auth">
-      Déjà un compte ?
-      <a routerLink="/sign-in">Me connecter</a>
+      Vous avez déjà un compte ?
+      <a routerLink="/sign-in">
+        Me connecter
+      </a>
     </p>
+
   </div>
 </section>
