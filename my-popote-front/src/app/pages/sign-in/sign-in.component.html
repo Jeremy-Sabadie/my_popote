@@ -1,16 +1,23 @@
 <section class="auth-page">
   <div class="auth-card">
+
     <header>
       <p class="eyebrow">My Popote</p>
+
       <h1>Connexion</h1>
+
       <p class="subtitle">
-        Connecte-toi pour retrouver tes recettes et ta semaine.
+        Connectez-vous pour retrouver vos recettes,
+        votre semaine et votre liste de courses.
       </p>
     </header>
 
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+
       <div class="field">
-        <label for="email">Adresse e-mail</label>
+        <label for="email">
+          Adresse e-mail
+        </label>
 
         <input id="email" type="email" formControlName="email" autocomplete="email" inputmode="email" />
 
@@ -18,12 +25,14 @@
             form.controls.email.touched &&
             form.controls.email.invalid
           " class="field-error">
-          Saisis une adresse e-mail valide.
+          Saisissez une adresse e-mail valide.
         </small>
       </div>
 
       <div class="field">
-        <label for="password">Mot de passe</label>
+        <label for="password">
+          Mot de passe
+        </label>
 
         <input id="password" type="password" formControlName="password" autocomplete="current-password" />
 
@@ -46,7 +55,10 @@
 
     <p class="switch-auth">
       Pas encore de compte ?
-      <a routerLink="/sign-up">Créer mon compte</a>
+      <a routerLink="/sign-up">
+        Créer mon compte
+      </a>
     </p>
+
   </div>
 </section>

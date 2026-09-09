@@ -15,13 +15,14 @@ import { SettingsComponent } from './pages/settings/settings.component';
 /**
  * Routes principales de My Popote.
  *
- * Les pages publiques restent accessibles sans compte.
- * Les fonctionnalités personnelles nécessitent un utilisateur connecté.
+ * L'authentification reste publique tandis que toutes les données
+ * personnelles et les fonctionnalités métier sont protégées.
  */
 export const routes: Routes = [
   {
     path: '',
-    component: HomeComponent,
+    redirectTo: 'home',
+    pathMatch: 'full',
   },
   {
     path: 'sign-in',
@@ -30,6 +31,11 @@ export const routes: Routes = [
   {
     path: 'sign-up',
     component: SignUpComponent,
+  },
+  {
+    path: 'home',
+    component: HomeComponent,
+    canActivate: [authGuard],
   },
   {
     path: 'today',
@@ -63,6 +69,6 @@ export const routes: Routes = [
   },
   {
     path: '**',
-    redirectTo: '',
+    redirectTo: 'home',
   },
 ];

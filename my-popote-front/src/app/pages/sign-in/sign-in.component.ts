@@ -1,7 +1,7 @@
+import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { CommonModule } from '@angular/common';
 
 import { AuthService } from '../../core/services/auth.service';
 
@@ -33,8 +33,7 @@ export class SignInComponent {
   }
 
   /**
-   * Envoie les identifiants uniquement lorsque le formulaire
-   * est valide et empêche les doubles soumissions.
+   * Connecte l'utilisateur puis l'envoie vers son tableau de bord.
    */
   submit(): void {
     if (this.form.invalid || this.loading) {
@@ -48,7 +47,7 @@ export class SignInComponent {
     this.authService.login(this.form.getRawValue()).subscribe({
       next: () => {
         this.loading = false;
-        void this.router.navigate(['/today']);
+        void this.router.navigate(['/home']);
       },
       error: () => {
         this.loading = false;

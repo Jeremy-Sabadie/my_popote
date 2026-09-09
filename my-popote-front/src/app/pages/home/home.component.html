@@ -1,1 +1,82 @@
-<p>home works!</p>
+<section class="dashboard">
+
+  <header class="welcome-card">
+    <p class="eyebrow">
+      Tableau de bord
+    </p>
+
+    <h1>
+      Bonjour {{ user?.firstName }}
+    </h1>
+
+    <p>
+      Organisez vos repas, vos recettes et vos courses
+      depuis votre espace My Popote.
+    </p>
+  </header>
+
+  <section class="quick-actions" aria-labelledby="quick-actions-title">
+
+    <div class="section-heading">
+      <h2 id="quick-actions-title">
+        Que souhaitez-vous faire ?
+      </h2>
+    </div>
+
+    <div class="action-grid">
+
+      <a routerLink="/today" class="action-card">
+        <span class="action-icon">🍽️</span>
+
+        <div>
+          <h3>Aujourd'hui</h3>
+          <p>Consultez les repas prévus aujourd'hui.</p>
+        </div>
+      </a>
+
+      <a routerLink="/week" class="action-card">
+        <span class="action-icon">📅</span>
+
+        <div>
+          <h3>Ma semaine</h3>
+          <p>Préparez et consultez votre planning de repas.</p>
+        </div>
+      </a>
+
+      <a routerLink="/recipes" class="action-card">
+        <span class="action-icon">🥘</span>
+
+        <div>
+          <h3>Mes recettes</h3>
+          <p>Ajoutez ou retrouvez vos recettes.</p>
+        </div>
+      </a>
+
+      <a routerLink="/shopping" class="action-card">
+        <span class="action-icon">🛒</span>
+
+        <div>
+          <h3>Mes courses</h3>
+          <p>Consultez votre liste de courses de la semaine.</p>
+        </div>
+      </a>
+
+    </div>
+  </section>
+
+  <section class="account-card">
+    <div>
+      <h2>Mon compte</h2>
+
+      <p>
+        Connecté avec
+        <strong>{{ user?.email }}</strong>
+      </p>
+    </div>
+
+    <a routerLink="/settings" class="profile-link">
+      Consulter mon profil
+    </a>
+  </section>
+
+</section>
