@@ -1,6 +1,9 @@
 package fr.mypopote.my_popote_api.export;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -13,10 +16,11 @@ import fr.mypopote.my_popote_api.shopping.dto.ShoppingItemResponse;
 import fr.mypopote.my_popote_api.shopping.dto.ShoppingListResponse;
 
 /**
- * Génère les exports CSV de l'application.
+ * Génère les exports texte de l'application.
  *
- * Le service utilise les services métier existants afin de conserver
- * les contrôles d'accès et l'isolation des données par utilisateur.
+ * Les recettes sont volontairement exportées sous forme de fiches
+ * lisibles afin que le fichier puisse être consulté facilement
+ * sans nécessiter l'ouverture dans un tableur.
  */
 @Service
 public class CsvExportService {
@@ -38,24 +42,20 @@ public class CsvExportService {
     /**
      * Exporte toutes les recettes appartenant à l'utilisateur connecté.
      *
-     * Une recette correspond à une ligne du fichier CSV.
+     * Chaque recette est présentée sous forme d'une fiche lisible.
+     * Une ligne vide sépare deux recettes.
      */
     public String exportRecipes(Long userId) {
 
         List<RecipeResponse> recipes =
             recipeService.findAllByUserId(userId, null, null);
 
-        StringBuilder csv = new StringBuilder();
+        StringBuilder export = new StringBuilder();
 
-        csv.append(
-            "Nom;Portions;Coût estimé;Instructions;Ingrédients;Saisons"
-        );
-        csv.append(LINE_BREAK);
+        for (int index = 0; index < recipes.size(); index++) {
 
-        for (RecipeResponse recipe : recipes) {
+            RecipeResponse recipe = recipes.get(index);
 
-            // Les ingrédients d'une recette sont regroupés
-            // dans une seule colonne pour garder une ligne par recette.
             String ingredients = recipe.ingredients()
                 .stream()
                 .map(this::formatIngredient)
@@ -63,45 +63,60 @@ public class CsvExportService {
 
             String seasons = recipe.seasons()
                 .stream()
+                .map(this::formatSeason)
                 .sorted()
                 .collect(Collectors.joining(", "));
 
-            csv.append(escape(recipe.name()))
-                .append(SEPARATOR)
+            export.append("Nom = ")
+                .append(safeText(recipe.name()))
+                .append(LINE_BREAK);
+
+            export.append("Portions = ")
                 .append(
                     recipe.servings() == null
                         ? ""
                         : recipe.servings()
                 )
-                .append(SEPARATOR)
-                .append(
-                    recipe.estimatedCost() == null
-                        ? ""
-                        : recipe.estimatedCost().toPlainString()
-                )
-                .append(SEPARATOR)
-                .append(escape(recipe.instructions()))
-                .append(SEPARATOR)
-                .append(escape(ingredients))
-                .append(SEPARATOR)
-                .append(escape(seasons))
                 .append(LINE_BREAK);
+
+            export.append("Coût = ")
+                .append(formatPrice(recipe.estimatedCost()))
+                .append(LINE_BREAK);
+
+            export.append("Instructions = ")
+                .append(safeText(recipe.instructions()))
+                .append(LINE_BREAK);
+
+            export.append("Ingrédients = ")
+                .append(safeText(ingredients))
+                .append(LINE_BREAK);
+
+            export.append("Saisons = ")
+                .append(safeText(seasons))
+                .append(LINE_BREAK);
+
+            /*
+             * Une ligne vide sépare visuellement les recettes,
+             * sauf après la dernière fiche.
+             */
+            if (index < recipes.size() - 1) {
+                export.append(LINE_BREAK);
+            }
         }
 
-        return csv.toString();
+        return export.toString();
     }
 
     /**
      * Exporte une liste de courses appartenant à l'utilisateur connecté.
      *
-     * Chaque article de courses correspond à une ligne du fichier.
+     * Pour le moment cet export reste au format CSV tabulaire,
+     * adapté à une liste de courses.
      */
     public String exportShoppingList(
             Long shoppingListId,
             Long userId) {
 
-        // Le service ShoppingListService contrôle déjà que la liste
-        // appartient bien à l'utilisateur authentifié.
         ShoppingListResponse shoppingList =
             shoppingListService.findByIdAndUserId(
                 shoppingListId,
@@ -117,11 +132,7 @@ public class CsvExportService {
 
             csv.append(escape(item.ingredientName()))
                 .append(SEPARATOR)
-                .append(
-                    item.quantity() == null
-                        ? ""
-                        : item.quantity().toPlainString()
-                )
+                .append(formatQuantity(item.quantity()))
                 .append(SEPARATOR)
                 .append(escape(item.unit()))
                 .append(SEPARATOR)
@@ -133,31 +144,121 @@ public class CsvExportService {
     }
 
     /**
-     * Transforme un ingrédient de recette en texte compact.
+     * Transforme un ingrédient en texte directement compréhensible.
      *
-     * Exemple : Tomate 2.000 PIECE
+     * Exemple :
+     * Riz : 200 g
      */
     private String formatIngredient(
             RecipeIngredientResponse ingredient) {
 
         String quantity =
-            ingredient.quantity() == null
-                ? ""
-                : ingredient.quantity().toPlainString();
+            formatQuantity(ingredient.quantity());
 
-        return ingredient.ingredientName()
-            + " "
-            + quantity
-            + " "
-            + ingredient.unit();
+        StringBuilder formatted = new StringBuilder();
+
+        formatted.append(ingredient.ingredientName());
+
+        if (!quantity.isBlank()) {
+            formatted.append(" : ")
+                .append(quantity);
+        }
+
+        if (
+            ingredient.unit() != null
+            && !ingredient.unit().isBlank()
+        ) {
+            formatted.append(" ")
+                .append(ingredient.unit());
+        }
+
+        return formatted.toString();
     }
 
     /**
-     * Échappe les valeurs pouvant casser la structure du CSV.
+     * Retire les décimales inutiles et utilise la virgule française.
      *
-     * Une valeur contenant un point-virgule, un guillemet ou un retour
-     * à la ligne est entourée de guillemets. Les guillemets déjà présents
-     * dans la valeur sont doublés.
+     * Exemples :
+     * 10.000 -> 10
+     * 2.500  -> 2,5
+     * 0.250  -> 0,25
+     */
+    private String formatQuantity(BigDecimal quantity) {
+
+        if (quantity == null) {
+            return "";
+        }
+
+        BigDecimal normalized =
+            quantity.stripTrailingZeros();
+
+        if (normalized.scale() < 0) {
+            normalized = normalized.setScale(0);
+        }
+
+        return normalized
+            .toPlainString()
+            .replace('.', ',');
+    }
+
+    /**
+     * Affiche toujours le prix avec deux décimales.
+     *
+     * Exemple :
+     * 5.00 -> 5,00 €
+     */
+    private String formatPrice(BigDecimal price) {
+
+        if (price == null) {
+            return "";
+        }
+
+        return price
+            .setScale(2, RoundingMode.HALF_UP)
+            .toPlainString()
+            .replace('.', ',')
+            + " €";
+    }
+
+    /**
+     * Traduit les valeurs techniques de saison utilisées par l'API.
+     */
+    private String formatSeason(String season) {
+
+        if (season == null || season.isBlank()) {
+            return "";
+        }
+
+        return switch (season.toUpperCase(Locale.ROOT)) {
+            case "SPRING" -> "Printemps";
+            case "SUMMER" -> "Été";
+            case "AUTUMN" -> "Automne";
+            case "WINTER" -> "Hiver";
+            case "ALL_YEAR" -> "Toute l’année";
+            default -> season;
+        };
+    }
+
+    /**
+     * Nettoie le texte destiné à l'export lisible.
+     *
+     * Les retours à la ligne sont remplacés par des espaces afin
+     * qu'un champ reste sur une seule ligne dans la fiche.
+     */
+    private String safeText(String value) {
+
+        if (value == null) {
+            return "";
+        }
+
+        return value
+            .replace("\r", " ")
+            .replace("\n", " ")
+            .trim();
+    }
+
+    /**
+     * Échappe les valeurs de l'export CSV de la liste de courses.
      */
     private String escape(String value) {
 
@@ -165,18 +266,48 @@ public class CsvExportService {
             return "";
         }
 
+        String safeValue =
+            protectAgainstFormulaInjection(value);
+
         boolean mustBeQuoted =
-            value.contains(SEPARATOR)
-            || value.contains("\"")
-            || value.contains("\n")
-            || value.contains("\r");
+            safeValue.contains(SEPARATOR)
+            || safeValue.contains("\"")
+            || safeValue.contains("\n")
+            || safeValue.contains("\r");
 
         if (!mustBeQuoted) {
-            return value;
+            return safeValue;
         }
 
         return "\""
-            + value.replace("\"", "\"\"")
+            + safeValue.replace("\"", "\"\"")
             + "\"";
+    }
+
+    /**
+     * Empêche un tableur d'interpréter une donnée utilisateur
+     * comme une formule lors de l'ouverture du CSV.
+     */
+    private String protectAgainstFormulaInjection(
+            String value) {
+
+        String trimmed = value.stripLeading();
+
+        if (trimmed.isEmpty()) {
+            return value;
+        }
+
+        char firstCharacter = trimmed.charAt(0);
+
+        if (
+            firstCharacter == '='
+            || firstCharacter == '+'
+            || firstCharacter == '-'
+            || firstCharacter == '@'
+        ) {
+            return "'" + value;
+        }
+
+        return value;
     }
 }

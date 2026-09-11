@@ -22,10 +22,13 @@ import fr.mypopote.my_popote_api.shopping.dto.ShoppingItemResponse;
 import fr.mypopote.my_popote_api.shopping.dto.ShoppingListResponse;
 
 /**
- * Tests unitaires du service d'export CSV.
+ * Tests unitaires du service d'export.
  *
- * On vérifie le contenu produit mais également que les services métier
- * sont toujours appelés avec l'identifiant de l'utilisateur connecté.
+ * Les recettes sont exportées sous forme de texte lisible.
+ * Les listes de courses restent exportées au format CSV.
+ *
+ * On vérifie également que les services métier sont toujours appelés
+ * avec l'identifiant de l'utilisateur connecté.
  */
 @ExtendWith(MockitoExtension.class)
 class CsvExportServiceTest {
@@ -48,11 +51,11 @@ class CsvExportServiceTest {
     }
 
     /**
-     * Vérifie qu'une recette peut être transformée en CSV
-     * avec ses ingrédients et ses saisons.
+     * Vérifie qu'une recette est exportée sous forme de fiche texte
+     * avec un format lisible pour l'utilisateur.
      */
     @Test
-    void shouldExportRecipesAsCsv() {
+    void shouldExportRecipesAsReadableText() {
 
         Long userId = 1L;
 
@@ -84,19 +87,17 @@ class CsvExportServiceTest {
             )
         ).thenReturn(List.of(recipe));
 
-        String csv =
+        String text =
             csvExportService.exportRecipes(userId);
 
-        assertThat(csv)
-            .contains(
-                "Nom;Portions;Coût estimé;Instructions;Ingrédients;Saisons"
-            )
-            .contains("Salade tomate")
-            .contains("Tomate 2.000 PIECE")
-            .contains("SUMMER");
+        assertThat(text)
+            .contains("Nom = Salade tomate")
+            .contains("Portions = 2")
+            .contains("Coût = 4,50 €")
+            .contains("Instructions = Couper les tomates")
+            .contains("Ingrédients = Tomate : 2 PIECE")
+            .contains("Saisons = Été");
 
-        // L'export ne doit récupérer que les recettes
-        // appartenant à l'utilisateur connecté.
         verify(recipeService)
             .findAllByUserId(
                 userId,
@@ -106,11 +107,10 @@ class CsvExportServiceTest {
     }
 
     /**
-     * Vérifie qu'un point-virgule présent dans une donnée utilisateur
-     * ne casse pas la structure du fichier CSV.
+     * Vérifie qu'un point-virgule reste lisible dans l'export texte.
      */
     @Test
-    void shouldEscapeCsvValuesContainingSeparator() {
+    void shouldKeepRecipeTextReadableWithSeparatorCharacters() {
 
         Long userId = 1L;
 
@@ -134,13 +134,13 @@ class CsvExportServiceTest {
             )
         ).thenReturn(List.of(recipe));
 
-        String csv =
+        String text =
             csvExportService.exportRecipes(userId);
 
-        // Le point-virgule appartient au nom de la recette :
-        // le champ doit donc être entouré de guillemets.
-        assertThat(csv)
-            .contains("\"Poulet; curry\"");
+        assertThat(text)
+            .contains("Nom = Poulet; curry")
+            .contains("Coût = 6,50 €")
+            .contains("Saisons = Toute l’année");
     }
 
     /**
@@ -183,14 +183,9 @@ class CsvExportServiceTest {
             );
 
         assertThat(csv)
-            .contains(
-                "Ingrédient;Quantité;Unité;Acheté"
-            )
-            .contains(
-                "Tomate;4.000;PIECE;Oui"
-            );
+            .contains("Ingrédient;Quantité;Unité;Acheté")
+            .contains("Tomate;4;PIECE;Oui");
 
-        // Le contrôle de propriété reste appliqué pendant l'export.
         verify(shoppingListService)
             .findByIdAndUserId(
                 shoppingListId,

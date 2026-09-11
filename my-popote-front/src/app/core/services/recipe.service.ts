@@ -20,6 +20,8 @@ export class RecipeService {
 
   private readonly tagsUrl = `${environment.apiUrl}/api/tags`;
 
+  private readonly exportsUrl = `${environment.apiUrl}/api/exports`;
+
   constructor(private readonly http: HttpClient) {}
 
   /**
@@ -64,5 +66,17 @@ export class RecipeService {
    */
   deleteRecipe(recipeId: number): Observable<void> {
     return this.http.delete<void>(`${this.recipesUrl}/${recipeId}`);
+  }
+
+  /**
+   * Télécharge les recettes sous forme de fichier texte lisible.
+   *
+   * Le JWT est ajouté automatiquement par l'intercepteur
+   * d'authentification comme pour les autres appels privés.
+   */
+  exportRecipes(): Observable<Blob> {
+    return this.http.get(`${this.exportsUrl}/recipes.txt`, {
+      responseType: 'blob',
+    });
   }
 }
