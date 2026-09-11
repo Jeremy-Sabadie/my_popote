@@ -9,10 +9,15 @@ describe('HomeComponent', () => {
   let component: HomeComponent;
   let fixture: ComponentFixture<HomeComponent>;
 
+  /**
+   * Utilisateur simulé correspondant au contrat actuel
+   * retourné par l'API d'authentification.
+   */
   const currentUser: AuthResponse = {
-    email: 'toto.test@gmail.com',
-    firstName: 'Toto',
-    accessToken: 'test-token',
+    id: 42,
+    email: 'jeremy@example.com',
+    firstName: 'Jeremy',
+    accessToken: 'test-access-token',
   };
 
   const authServiceMock = {

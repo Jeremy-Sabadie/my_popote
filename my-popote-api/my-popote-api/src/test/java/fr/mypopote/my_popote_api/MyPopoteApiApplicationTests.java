@@ -10,8 +10,20 @@ import org.springframework.context.annotation.Import;
  *
  * La base utilisée ici est une MariaDB Testcontainers temporaire.
  * Ce test ne doit jamais se connecter à MariaDB Cloud.
+ *
+ * Les paramètres SMTP sont également fictifs :
+ * aucun e-mail n'est envoyé pendant ce test.
  */
-@SpringBootTest
+@SpringBootTest(
+    properties = {
+        "app.frontend.url=http://localhost:4200",
+        "app.mail.from=test@my-popote.local",
+        "spring.mail.host=localhost",
+        "spring.mail.port=2525",
+        "spring.mail.username=test",
+        "spring.mail.password=test"
+    }
+)
 @Import(TestDatabaseConfig.class)
 class MyPopoteApiApplicationTests {
 

@@ -1,0 +1,35 @@
+services:
+
+  mariadb:
+    image: mariadb:11.8
+    container_name: my-popote-mariadb
+
+    restart: unless-stopped
+
+    environment:
+      MARIADB_DATABASE: my_popote
+      MARIADB_USER: my_popote
+      MARIADB_PASSWORD: my_popote_dev
+      MARIADB_ROOT_PASSWORD: my_popote_root_dev
+
+    ports:
+      - "3307:3306"
+
+    volumes:
+      # Les données survivent au redémarrage du conteneur.
+      - my_popote_mariadb_data:/var/lib/mysql
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "healthcheck.sh",
+          "--connect",
+          "--innodb_initialized"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  my_popote_mariadb_data:

@@ -15,33 +15,27 @@
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
 
       <div class="field">
-        <label for="email">
-          Adresse e-mail
-        </label>
+        <label for="email">Adresse e-mail</label>
 
         <input id="email" type="email" formControlName="email" autocomplete="email" inputmode="email" />
 
-        <small *ngIf="
-            form.controls.email.touched &&
-            form.controls.email.invalid
-          " class="field-error">
+        <small *ngIf="form.controls.email.touched && form.controls.email.invalid" class="field-error">
           Saisissez une adresse e-mail valide.
         </small>
       </div>
 
       <div class="field">
-        <label for="password">
-          Mot de passe
-        </label>
+        <label for="password">Mot de passe</label>
 
         <input id="password" type="password" formControlName="password" autocomplete="current-password" />
 
-        <small *ngIf="
-            form.controls.password.touched &&
-            form.controls.password.invalid
-          " class="field-error">
+        <small *ngIf="form.controls.password.touched && form.controls.password.invalid" class="field-error">
           Le mot de passe est obligatoire.
         </small>
+
+        <a routerLink="/forgot-password" class="forgot-password">
+          Mot de passe oublié ?
+        </a>
       </div>
 
       <p *ngIf="errorMessage" class="auth-error" role="alert">
