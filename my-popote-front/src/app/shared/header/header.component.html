@@ -1,31 +1,70 @@
-<header class="header">
+<header class="app-header">
 
-  <a class="brand" routerLink="/today">
-
+  <a class="brand" routerLink="/home" aria-label="Retour au tableau de bord My Popote">
     <span class="brand-icon">
-      <svg lucideChefHat class="icon icon-brand" aria-hidden="true"></svg>
+      🍳
     </span>
 
-    <span class="brand-text">
+    <span class="brand-name">
       My Popote
     </span>
-
   </a>
 
-  <nav class="desktop-secondary-nav" aria-label="Navigation secondaire">
+  @if (isAuthenticated) {
 
-    <a routerLink="/history" routerLinkActive="active">
-      <svg lucideHistory class="icon icon-navigation" aria-hidden="true"></svg>
+  <div class="user-menu" (click)="$event.stopPropagation()">
 
-      Historique
-    </a>
+    <button type="button" class="user-menu-trigger" aria-haspopup="menu" [attr.aria-expanded]="menuOpen"
+      (click)="toggleUserMenu($event)">
 
-    <a routerLink="/settings" routerLinkActive="active">
-      <svg lucideSettings class="icon icon-navigation" aria-hidden="true"></svg>
+      <span class="user-avatar" aria-hidden="true">
+        {{ userInitial }}
+      </span>
 
-      Paramètres
-    </a>
+      <span class="user-name">
+        {{ user?.firstName }}
+      </span>
 
-  </nav>
+      <span class="chevron" [class.chevron-open]="menuOpen" aria-hidden="true">
+        ▾
+      </span>
+
+    </button>
+
+    @if (menuOpen) {
+
+    <div class="user-dropdown" role="menu">
+
+      <div class="user-summary">
+        <strong>
+          {{ user?.firstName }}
+        </strong>
+
+        <span>
+          {{ user?.email }}
+        </span>
+      </div>
+
+      <div class="menu-separator"></div>
+
+      <a routerLink="/settings" class="menu-item" role="menuitem" (click)="closeUserMenu()">
+        <span aria-hidden="true">👤</span>
+        Mon profil
+      </a>
+
+      <div class="menu-separator"></div>
+
+      <button type="button" class="menu-item logout-item" role="menuitem" (click)="logout()">
+        <span aria-hidden="true">↪</span>
+        Se déconnecter
+      </button>
+
+    </div>
+
+    }
+
+  </div>
+
+  }
 
 </header>

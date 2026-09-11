@@ -4,8 +4,11 @@ import { Observable, tap } from 'rxjs';
 
 import {
   AuthResponse,
+  ForgotPasswordRequest,
   LoginRequest,
+  MessageResponse,
   RegisterRequest,
+  ResetPasswordRequest,
 } from '../../models/auth.model';
 import { environment } from '../../../environments/environment';
 
@@ -32,13 +35,11 @@ export class AuthService {
    * Authentifie l'utilisateur et initialise sa session locale.
    */
   login(request: LoginRequest): Observable<AuthResponse> {
-    return this.http
-      .post<AuthResponse>(`${this.authUrl}/login`, request)
-      .pipe(
-        tap((response) => {
-          this.storeSession(response);
-        }),
-      );
+    return this.http.post<AuthResponse>(`${this.authUrl}/login`, request).pipe(
+      tap((response) => {
+        this.storeSession(response);
+      }),
+    );
   }
 
   /**
@@ -55,40 +56,47 @@ export class AuthService {
   }
 
   /**
-   * Fournit le JWT à l'intercepteur HTTP.
+   * Demande l'envoi d'un lien de réinitialisation.
+   *
+   * L'API retourne volontairement la même réponse
+   * que l'adresse existe ou non.
    */
+  forgotPassword(request: ForgotPasswordRequest): Observable<MessageResponse> {
+    return this.http.post<MessageResponse>(
+      `${this.authUrl}/forgot-password`,
+      request,
+    );
+  }
+
+  /**
+   * Remplace le mot de passe à partir du token temporaire.
+   */
+  resetPassword(request: ResetPasswordRequest): Observable<MessageResponse> {
+    return this.http.post<MessageResponse>(
+      `${this.authUrl}/reset-password`,
+      request,
+    );
+  }
+
   getAccessToken(): string | null {
     return this.accessToken;
   }
 
-  /**
-   * Retourne les informations de l'utilisateur connecté.
-   */
   getCurrentUser(): AuthResponse | null {
     return this.currentUser;
   }
 
-  /**
-   * Indique si une session authentifiée existe actuellement.
-   */
   isAuthenticated(): boolean {
     return this.accessToken !== null;
   }
 
-  /**
-   * Déconnecte localement l'utilisateur.
-   *
-   * Le JWT et les informations associées à la session
-   * sont supprimés ensemble.
-   */
   logout(): void {
     this.accessToken = null;
     this.currentUser = null;
   }
 
   /**
-   * Centralise l'initialisation de la session pour éviter
-   * de dupliquer cette logique entre connexion et inscription.
+   * Centralise l'initialisation de la session.
    */
   private storeSession(response: AuthResponse): void {
     this.accessToken = response.accessToken;

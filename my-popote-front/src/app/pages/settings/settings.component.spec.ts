@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Router } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 
 import { AuthService } from '../../core/services/auth.service';
 import { AuthResponse } from '../../models/auth.model';
@@ -8,45 +8,42 @@ import { SettingsComponent } from './settings.component';
 describe('SettingsComponent', () => {
   let component: SettingsComponent;
   let fixture: ComponentFixture<SettingsComponent>;
+  let router: Router;
 
-  let routerSpy: jasmine.SpyObj<Router>;
-
+  /**
+   * Utilisateur simulé conforme à la réponse
+   * d'authentification actuelle de l'API.
+   */
   const currentUser: AuthResponse = {
-    email: 'toto.test@gmail.com',
-    firstName: 'Toto',
-    accessToken: 'test-token',
+    id: 42,
+    email: 'jeremy@example.com',
+    firstName: 'Jeremy',
+    accessToken: 'test-access-token',
   };
 
   const authServiceMock = {
-    getCurrentUser: jasmine
-      .createSpy('getCurrentUser')
-      .and.returnValue(currentUser),
+    getCurrentUser: () => currentUser,
     logout: jasmine.createSpy('logout'),
   };
 
   beforeEach(async () => {
-    routerSpy = jasmine.createSpyObj<Router>('Router', ['navigate']);
-
-    authServiceMock.getCurrentUser.calls.reset();
-    authServiceMock.getCurrentUser.and.returnValue(currentUser);
     authServiceMock.logout.calls.reset();
 
     await TestBed.configureTestingModule({
       imports: [SettingsComponent],
       providers: [
+        provideRouter([]),
         {
           provide: AuthService,
           useValue: authServiceMock,
-        },
-        {
-          provide: Router,
-          useValue: routerSpy,
         },
       ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(SettingsComponent);
     component = fixture.componentInstance;
+    router = TestBed.inject(Router);
+
     fixture.detectChanges();
   });
 
@@ -58,10 +55,12 @@ describe('SettingsComponent', () => {
     expect(component.user).toEqual(currentUser);
   });
 
-  it('should clear the session and redirect to sign in on logout', () => {
+  it('should logout and redirect to sign-in', () => {
+    spyOn(router, 'navigate');
+
     component.logout();
 
     expect(authServiceMock.logout).toHaveBeenCalled();
-    expect(routerSpy.navigate).toHaveBeenCalledWith(['/sign-in']);
+    expect(router.navigate).toHaveBeenCalledWith(['/sign-in']);
   });
 });
