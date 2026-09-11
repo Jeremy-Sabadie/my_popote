@@ -16,7 +16,10 @@ import org.springframework.web.bind.annotation.RestController;
 import fr.mypopote.my_popote_api.security.CurrentUserService;
 
 /**
- * Expose les endpoints permettant de télécharger les fichiers CSV.
+ * Expose les endpoints permettant de télécharger les exports de l'application.
+ *
+ * Les recettes sont exportées sous forme de fichier texte lisible.
+ * Les listes de courses restent au format CSV tabulaire.
  *
  * L'utilisateur est toujours identifié grâce au JWT.
  * Aucun userId envoyé par le frontend n'est utilisé.
@@ -24,6 +27,9 @@ import fr.mypopote.my_popote_api.security.CurrentUserService;
 @RestController
 @RequestMapping("/api/exports")
 public class CsvExportController {
+
+    private static final MediaType TEXT_MEDIA_TYPE =
+        MediaType.parseMediaType("text/plain;charset=UTF-8");
 
     private static final MediaType CSV_MEDIA_TYPE =
         MediaType.parseMediaType("text/csv;charset=UTF-8");
@@ -40,20 +46,21 @@ public class CsvExportController {
     }
 
     /**
-     * Télécharge toutes les recettes de l'utilisateur connecté.
+     * Télécharge toutes les recettes de l'utilisateur connecté
+     * sous forme d'une fiche texte lisible.
      */
-    @GetMapping("/recipes.csv")
+    @GetMapping("/recipes.txt")
     public ResponseEntity<byte[]> exportRecipes(
             @AuthenticationPrincipal Jwt jwt) {
 
         Long userId = currentUserService.getUserId(jwt);
 
-        String csv =
+        String text =
             csvExportService.exportRecipes(userId);
 
-        return buildCsvResponse(
-            csv,
-            "my-popote-recettes.csv"
+        return buildTextResponse(
+            text,
+            "my-popote-recettes.txt"
         );
     }
 
@@ -77,6 +84,36 @@ public class CsvExportController {
             csv,
             "my-popote-courses-" + shoppingListId + ".csv"
         );
+    }
+
+    /**
+     * Prépare la réponse HTTP pour l'export texte des recettes.
+     *
+     * Le contenu est explicitement renvoyé en UTF-8 afin de conserver
+     * correctement les accents dans les éditeurs de texte.
+     */
+    private ResponseEntity<byte[]> buildTextResponse(
+            String text,
+            String filename) {
+
+        byte[] content =
+            text.getBytes(StandardCharsets.UTF_8);
+
+        ContentDisposition disposition =
+            ContentDisposition.attachment()
+                .filename(
+                    filename,
+                    StandardCharsets.UTF_8
+                )
+                .build();
+
+        return ResponseEntity.ok()
+            .contentType(TEXT_MEDIA_TYPE)
+            .header(
+                HttpHeaders.CONTENT_DISPOSITION,
+                disposition.toString()
+            )
+            .body(content);
     }
 
     /**

@@ -11,9 +11,15 @@
       </p>
     </div>
 
-    <button type="button" class="primary-button" (click)="openRecipeForm()">
-      + Ajouter une recette
-    </button>
+    <div class="header-actions">
+      <button type="button" class="secondary-button" [disabled]="exportingRecipes" (click)="exportRecipes()">
+        {{ exportingRecipes ? 'Export…' : 'Exporter CSV' }}
+      </button>
+
+      <button type="button" class="primary-button" (click)="openRecipeForm()">
+        + Ajouter une recette
+      </button>
+    </div>
   </header>
 
 
@@ -296,6 +302,7 @@
             <div class="field">
               <label for="estimated-cost">
                 Coût estimé
+
                 <span class="optional">
                   Facultatif
                 </span>
@@ -315,10 +322,12 @@
             <legend>Saisonnalité</legend>
 
             <div class="choice-list">
+
               <button *ngFor="let season of seasons" type="button" class="choice-chip"
                 [class.selected]="isSeasonSelected(season.value)" (click)="toggleSeason(season.value)">
                 {{ season.label }}
               </button>
+
             </div>
           </fieldset>
 
@@ -327,16 +336,19 @@
 
             <legend>
               Tags
+
               <span class="optional">
                 Facultatif
               </span>
             </legend>
 
             <div class="choice-list">
+
               <button *ngFor="let tag of tags" type="button" class="choice-chip"
                 [class.selected]="isRecipeTagSelected(tag.id)" (click)="toggleRecipeTag(tag.id)">
                 {{ tag.name }}
               </button>
+
             </div>
           </fieldset>
 
@@ -385,6 +397,7 @@
                   Cela évite les variantes comme g, gr, gramme...
                   qui compliqueraient ensuite l'agrégation des courses.
                 -->
+
                 <div class="field">
                   <label [for]="'unit-' + i">
                     Unité
@@ -426,6 +439,7 @@
           <div class="field instructions-field">
             <label for="instructions">
               Préparation
+
               <span class="optional">
                 Facultatif
               </span>
