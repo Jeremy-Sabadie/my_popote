@@ -2,7 +2,6 @@ package fr.mypopote.my_popote_api.export;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
 
@@ -16,11 +15,10 @@ import fr.mypopote.my_popote_api.shopping.dto.ShoppingItemResponse;
 import fr.mypopote.my_popote_api.shopping.dto.ShoppingListResponse;
 
 /**
- * Génère les exports texte de l'application.
+ * Génère les exports de l'application.
  *
- * Les recettes sont volontairement exportées sous forme de fiches
- * lisibles afin que le fichier puisse être consulté facilement
- * sans nécessiter l'ouverture dans un tableur.
+ * Une recette est exportée sous forme de fiche texte lisible.
+ * La liste de courses reste au format CSV tabulaire.
  */
 @Service
 public class CsvExportService {
@@ -40,78 +38,75 @@ public class CsvExportService {
     }
 
     /**
-     * Exporte toutes les recettes appartenant à l'utilisateur connecté.
+     * Exporte une recette précise appartenant à l'utilisateur connecté.
      *
-     * Chaque recette est présentée sous forme d'une fiche lisible.
-     * Une ligne vide sépare deux recettes.
+     * Le service RecipeService vérifie que la recette appartient bien
+     * à l'utilisateur authentifié avant de renvoyer ses données.
      */
-    public String exportRecipes(Long userId) {
+    public String exportRecipe(
+            Long recipeId,
+            Long userId) {
 
-        List<RecipeResponse> recipes =
-            recipeService.findAllByUserId(userId, null, null);
+        RecipeResponse recipe =
+            recipeService.findById(
+                recipeId,
+                userId
+            );
+
+        return formatRecipe(recipe);
+    }
+
+    /**
+     * Construit la fiche texte lisible d'une recette.
+     */
+    private String formatRecipe(RecipeResponse recipe) {
+
+        String ingredients = recipe.ingredients()
+            .stream()
+            .map(this::formatIngredient)
+            .collect(Collectors.joining(", "));
+
+        String seasons = recipe.seasons()
+            .stream()
+            .map(this::formatSeason)
+            .sorted()
+            .collect(Collectors.joining(", "));
 
         StringBuilder export = new StringBuilder();
 
-        for (int index = 0; index < recipes.size(); index++) {
+        export.append("Nom = ")
+            .append(safeText(recipe.name()))
+            .append(LINE_BREAK);
 
-            RecipeResponse recipe = recipes.get(index);
+        export.append("Portions = ")
+            .append(
+                recipe.servings() == null
+                    ? ""
+                    : recipe.servings()
+            )
+            .append(LINE_BREAK);
 
-            String ingredients = recipe.ingredients()
-                .stream()
-                .map(this::formatIngredient)
-                .collect(Collectors.joining(", "));
+        export.append("Coût = ")
+            .append(formatPrice(recipe.estimatedCost()))
+            .append(LINE_BREAK);
 
-            String seasons = recipe.seasons()
-                .stream()
-                .map(this::formatSeason)
-                .sorted()
-                .collect(Collectors.joining(", "));
+        export.append("Instructions = ")
+            .append(safeText(recipe.instructions()))
+            .append(LINE_BREAK);
 
-            export.append("Nom = ")
-                .append(safeText(recipe.name()))
-                .append(LINE_BREAK);
+        export.append("Ingrédients = ")
+            .append(safeText(ingredients))
+            .append(LINE_BREAK);
 
-            export.append("Portions = ")
-                .append(
-                    recipe.servings() == null
-                        ? ""
-                        : recipe.servings()
-                )
-                .append(LINE_BREAK);
-
-            export.append("Coût = ")
-                .append(formatPrice(recipe.estimatedCost()))
-                .append(LINE_BREAK);
-
-            export.append("Instructions = ")
-                .append(safeText(recipe.instructions()))
-                .append(LINE_BREAK);
-
-            export.append("Ingrédients = ")
-                .append(safeText(ingredients))
-                .append(LINE_BREAK);
-
-            export.append("Saisons = ")
-                .append(safeText(seasons))
-                .append(LINE_BREAK);
-
-            /*
-             * Une ligne vide sépare visuellement les recettes,
-             * sauf après la dernière fiche.
-             */
-            if (index < recipes.size() - 1) {
-                export.append(LINE_BREAK);
-            }
-        }
+        export.append("Saisons = ")
+            .append(safeText(seasons))
+            .append(LINE_BREAK);
 
         return export.toString();
     }
 
     /**
      * Exporte une liste de courses appartenant à l'utilisateur connecté.
-     *
-     * Pour le moment cet export reste au format CSV tabulaire,
-     * adapté à une liste de courses.
      */
     public String exportShoppingList(
             Long shoppingListId,
@@ -177,11 +172,6 @@ public class CsvExportService {
 
     /**
      * Retire les décimales inutiles et utilise la virgule française.
-     *
-     * Exemples :
-     * 10.000 -> 10
-     * 2.500  -> 2,5
-     * 0.250  -> 0,25
      */
     private String formatQuantity(BigDecimal quantity) {
 
@@ -203,9 +193,6 @@ public class CsvExportService {
 
     /**
      * Affiche toujours le prix avec deux décimales.
-     *
-     * Exemple :
-     * 5.00 -> 5,00 €
      */
     private String formatPrice(BigDecimal price) {
 
@@ -241,9 +228,6 @@ public class CsvExportService {
 
     /**
      * Nettoie le texte destiné à l'export lisible.
-     *
-     * Les retours à la ligne sont remplacés par des espaces afin
-     * qu'un champ reste sur une seule ligne dans la fiche.
      */
     private String safeText(String value) {
 

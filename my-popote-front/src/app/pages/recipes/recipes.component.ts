@@ -38,7 +38,7 @@ export class RecipesComponent implements OnInit {
 
   loading = true;
   saving = false;
-  exportingRecipes = false;
+  downloadingRecipe = false;
   showRecipeForm = false;
 
   errorMessage = '';
@@ -60,17 +60,11 @@ export class RecipesComponent implements OnInit {
   ) {
     this.recipeForm = this.formBuilder.nonNullable.group({
       name: ['', [Validators.required, Validators.maxLength(150)]],
-
       servings: [2, [Validators.required, Validators.min(1)]],
-
       estimatedCost: [null as number | null, Validators.min(0)],
-
       instructions: ['', Validators.maxLength(10000)],
-
       seasons: this.formBuilder.nonNullable.control<string[]>(['ALL_YEAR']),
-
       tagIds: this.formBuilder.nonNullable.control<number[]>([]),
-
       ingredients: this.formBuilder.array([this.createIngredientForm()]),
     });
   }
@@ -116,9 +110,7 @@ export class RecipesComponent implements OnInit {
   private createIngredientForm(ingredientName = '', quantity = 1, unit = 'g') {
     return this.formBuilder.nonNullable.group({
       ingredientName: [ingredientName, Validators.required],
-
       quantity: [quantity, [Validators.required, Validators.min(0.01)]],
-
       unit: [unit, Validators.required],
     });
   }
@@ -140,7 +132,7 @@ export class RecipesComponent implements OnInit {
    * Ferme complètement la modale.
    */
   closeModal(): void {
-    if (this.saving) {
+    if (this.saving || this.downloadingRecipe) {
       return;
     }
 
@@ -162,9 +154,6 @@ export class RecipesComponent implements OnInit {
 
   /**
    * Passe directement du détail au formulaire de modification.
-   *
-   * Les ingrédients reçus de l'API sont recopiés dans le FormArray
-   * afin de pouvoir modifier une recette sans avoir à les ressaisir.
    */
   editRecipe(recipe: Recipe): void {
     this.selectedRecipe = recipe;
@@ -201,8 +190,6 @@ export class RecipesComponent implements OnInit {
 
   /**
    * Annule une modification et revient simplement au détail.
-   *
-   * Lors d'une création, la modale est fermée.
    */
   cancelForm(): void {
     if (this.saving) {
@@ -234,8 +221,6 @@ export class RecipesComponent implements OnInit {
 
   /**
    * Gère la saisonnalité sans permettre un état invalide.
-   *
-   * "Toute l'année" est exclusive des quatre saisons.
    */
   toggleSeason(season: string): void {
     const control = this.recipeForm.controls.seasons;
@@ -251,10 +236,6 @@ export class RecipesComponent implements OnInit {
     if (withoutAllYear.includes(season)) {
       const remaining = withoutAllYear.filter((value) => value !== season);
 
-      /*
-       * Une recette doit toujours conserver au moins
-       * une saison pour rester valide côté API.
-       */
       control.setValue(remaining.length > 0 ? remaining : ['ALL_YEAR']);
 
       return;
@@ -297,9 +278,7 @@ export class RecipesComponent implements OnInit {
 
     if (this.recipeForm.invalid) {
       this.recipeForm.markAllAsTouched();
-
       this.formErrorMessage = this.buildFormValidationMessage();
-
       return;
     }
 
@@ -325,14 +304,12 @@ export class RecipesComponent implements OnInit {
       }
 
       this.saving = true;
-
       this.updateRecipe(recipeToUpdate, request);
 
       return;
     }
 
     this.saving = true;
-
     this.createRecipe(request);
   }
 
@@ -348,16 +325,12 @@ export class RecipesComponent implements OnInit {
       category: this.editingRecipe?.category ?? 'OTHER',
 
       servings: value.servings,
-
       estimatedCost: value.estimatedCost,
-
       instructions: value.instructions.trim() || null,
 
       ingredients: value.ingredients.map((ingredient) => ({
         ingredientName: ingredient.ingredientName.trim(),
-
         quantity: ingredient.quantity,
-
         unit: ingredient.unit.trim(),
       })),
 
@@ -404,10 +377,6 @@ export class RecipesComponent implements OnInit {
           recipe.id === updatedRecipe.id ? updatedRecipe : recipe,
         );
 
-        /*
-         * Après modification, on revient directement
-         * à la fiche mise à jour dans la même modale.
-         */
         this.selectedRecipe = updatedRecipe;
         this.editingRecipe = null;
         this.showRecipeForm = false;
@@ -427,11 +396,6 @@ export class RecipesComponent implements OnInit {
       error: (error: HttpErrorResponse) => {
         this.saving = false;
 
-        /*
-         * Le détail technique reste dans la console pour le
-         * diagnostic, tandis que l'utilisateur reçoit un
-         * message compréhensible dans le formulaire.
-         */
         console.error(
           `Échec de la modification de la recette ${originalRecipe.id} :`,
           error,
@@ -443,8 +407,7 @@ export class RecipesComponent implements OnInit {
   }
 
   /**
-   * Transforme les principaux statuts HTTP en messages utiles
-   * sans exposer de détails techniques à l'utilisateur.
+   * Transforme les principaux statuts HTTP en messages utiles.
    */
   private buildSaveErrorMessage(
     error: HttpErrorResponse,
@@ -476,25 +439,22 @@ export class RecipesComponent implements OnInit {
   }
 
   /**
-   * Télécharge la bibliothèque de recettes au format CSV.
-   *
-   * Le Blob est fourni par l'API : le frontend se contente de déclencher
-   * le téléchargement puis libère immédiatement l'URL temporaire.
+   * Télécharge uniquement la recette actuellement consultée.
    */
-  exportRecipes(): void {
-    if (this.exportingRecipes) {
+  downloadRecipe(recipe: Recipe): void {
+    if (this.downloadingRecipe) {
       return;
     }
 
-    this.exportingRecipes = true;
+    this.downloadingRecipe = true;
 
-    this.recipeService.exportRecipes().subscribe({
-      next: (csvFile) => {
-        const downloadUrl = URL.createObjectURL(csvFile);
+    this.recipeService.downloadRecipe(recipe.id).subscribe({
+      next: (recipeFile) => {
+        const downloadUrl = URL.createObjectURL(recipeFile);
         const link = document.createElement('a');
 
         link.href = downloadUrl;
-        link.download = 'my-popote-recettes.txt';
+        link.download = this.buildRecipeFilename(recipe);
 
         document.body.appendChild(link);
         link.click();
@@ -502,22 +462,39 @@ export class RecipesComponent implements OnInit {
 
         URL.revokeObjectURL(downloadUrl);
 
-        this.exportingRecipes = false;
+        this.downloadingRecipe = false;
       },
 
       error: (error: HttpErrorResponse) => {
-        this.exportingRecipes = false;
+        this.downloadingRecipe = false;
 
-        console.error('Erreur lors de l’export CSV des recettes :', error);
+        console.error(
+          `Erreur lors du téléchargement de la recette ${recipe.id} :`,
+          error,
+        );
 
         void Swal.fire({
-          title: 'Export impossible',
-          text: 'Le fichier CSV des recettes n’a pas pu être téléchargé pour le moment.',
+          title: 'Téléchargement impossible',
+          text: 'La recette n’a pas pu être téléchargée pour le moment.',
           icon: 'error',
           confirmButtonText: 'Fermer',
         });
       },
     });
+  }
+
+  /**
+   * Produit un nom de fichier lisible sans caractères problématiques.
+   */
+  private buildRecipeFilename(recipe: Recipe): string {
+    const safeName = recipe.name
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+
+    return `my-popote-${safeName || `recette-${recipe.id}`}.txt`;
   }
 
   async deleteRecipe(recipe: Recipe): Promise<void> {
@@ -617,7 +594,6 @@ export class RecipesComponent implements OnInit {
     });
 
     this.ingredients.clear();
-
     this.ingredients.push(this.createIngredientForm());
 
     this.formErrorMessage = '';
@@ -658,7 +634,6 @@ export class RecipesComponent implements OnInit {
 
   clearFilters(): void {
     this.selectedTagIds.clear();
-
     this.loadFilteredRecipes();
   }
 
@@ -674,4 +649,3 @@ export class RecipesComponent implements OnInit {
     return labels[season.toUpperCase()] ?? season;
   }
 }
-

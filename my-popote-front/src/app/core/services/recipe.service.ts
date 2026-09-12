@@ -69,13 +69,12 @@ export class RecipeService {
   }
 
   /**
-   * Télécharge les recettes sous forme de fichier texte lisible.
+   * Télécharge une recette précise sous forme de fichier texte lisible.
    *
-   * Le JWT est ajouté automatiquement par l'intercepteur
-   * d'authentification comme pour les autres appels privés.
+   * L'identité de l'utilisateur reste déterminée par le JWT côté API.
    */
-  exportRecipes(): Observable<Blob> {
-    return this.http.get(`${this.exportsUrl}/recipes.txt`, {
+  downloadRecipe(recipeId: number): Observable<Blob> {
+    return this.http.get(`${this.exportsUrl}/recipes/${recipeId}.txt`, {
       responseType: 'blob',
     });
   }
