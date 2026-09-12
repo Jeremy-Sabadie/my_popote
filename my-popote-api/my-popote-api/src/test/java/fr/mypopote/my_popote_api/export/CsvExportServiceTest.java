@@ -24,11 +24,12 @@ import fr.mypopote.my_popote_api.shopping.dto.ShoppingListResponse;
 /**
  * Tests unitaires du service d'export.
  *
- * Les recettes sont exportées sous forme de texte lisible.
+ * Une recette est exportée sous forme de texte lisible.
  * Les listes de courses restent exportées au format CSV.
  *
- * On vérifie également que les services métier sont toujours appelés
- * avec l'identifiant de l'utilisateur connecté.
+ * Les tests vérifient également que les services métier sont appelés
+ * avec l'identifiant de l'utilisateur connecté afin de préserver
+ * l'isolation des données.
  */
 @ExtendWith(MockitoExtension.class)
 class CsvExportServiceTest {
@@ -51,13 +52,14 @@ class CsvExportServiceTest {
     }
 
     /**
-     * Vérifie qu'une recette est exportée sous forme de fiche texte
-     * avec un format lisible pour l'utilisateur.
+     * Vérifie qu'une recette précise est exportée sous forme
+     * de fiche texte lisible pour l'utilisateur.
      */
     @Test
-    void shouldExportRecipesAsReadableText() {
+    void shouldExportRecipeAsReadableText() {
 
         Long userId = 1L;
+        Long recipeId = 20L;
 
         RecipeIngredientResponse ingredient =
             new RecipeIngredientResponse(
@@ -69,7 +71,7 @@ class CsvExportServiceTest {
 
         RecipeResponse recipe =
             new RecipeResponse(
-                20L,
+                recipeId,
                 "Salade tomate",
                 "SALAD",
                 2,
@@ -80,15 +82,17 @@ class CsvExportServiceTest {
             );
 
         when(
-            recipeService.findAllByUserId(
-                userId,
-                null,
-                null
+            recipeService.findById(
+                recipeId,
+                userId
             )
-        ).thenReturn(List.of(recipe));
+        ).thenReturn(recipe);
 
         String text =
-            csvExportService.exportRecipes(userId);
+            csvExportService.exportRecipe(
+                recipeId,
+                userId
+            );
 
         assertThat(text)
             .contains("Nom = Salade tomate")
@@ -99,10 +103,9 @@ class CsvExportServiceTest {
             .contains("Saisons = Été");
 
         verify(recipeService)
-            .findAllByUserId(
-                userId,
-                null,
-                null
+            .findById(
+                recipeId,
+                userId
             );
     }
 
@@ -113,10 +116,11 @@ class CsvExportServiceTest {
     void shouldKeepRecipeTextReadableWithSeparatorCharacters() {
 
         Long userId = 1L;
+        Long recipeId = 20L;
 
         RecipeResponse recipe =
             new RecipeResponse(
-                20L,
+                recipeId,
                 "Poulet; curry",
                 "MEAT",
                 2,
@@ -127,20 +131,28 @@ class CsvExportServiceTest {
             );
 
         when(
-            recipeService.findAllByUserId(
-                userId,
-                null,
-                null
+            recipeService.findById(
+                recipeId,
+                userId
             )
-        ).thenReturn(List.of(recipe));
+        ).thenReturn(recipe);
 
         String text =
-            csvExportService.exportRecipes(userId);
+            csvExportService.exportRecipe(
+                recipeId,
+                userId
+            );
 
         assertThat(text)
             .contains("Nom = Poulet; curry")
             .contains("Coût = 6,50 €")
             .contains("Saisons = Toute l’année");
+
+        verify(recipeService)
+            .findById(
+                recipeId,
+                userId
+            );
     }
 
     /**

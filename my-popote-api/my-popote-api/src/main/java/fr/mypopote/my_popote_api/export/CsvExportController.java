@@ -18,7 +18,7 @@ import fr.mypopote.my_popote_api.security.CurrentUserService;
 /**
  * Expose les endpoints permettant de télécharger les exports de l'application.
  *
- * Les recettes sont exportées sous forme de fichier texte lisible.
+ * Une recette est exportée sous forme de fichier texte lisible.
  * Les listes de courses restent au format CSV tabulaire.
  *
  * L'utilisateur est toujours identifié grâce au JWT.
@@ -46,21 +46,28 @@ public class CsvExportController {
     }
 
     /**
-     * Télécharge toutes les recettes de l'utilisateur connecté
-     * sous forme d'une fiche texte lisible.
+     * Télécharge une recette précise appartenant à l'utilisateur connecté.
+     *
+     * Le contrôle d'appartenance est effectué côté backend afin qu'un
+     * utilisateur ne puisse jamais exporter la recette d'un autre compte
+     * simplement en modifiant l'identifiant dans l'URL.
      */
-    @GetMapping("/recipes.txt")
-    public ResponseEntity<byte[]> exportRecipes(
+    @GetMapping("/recipes/{recipeId}.txt")
+    public ResponseEntity<byte[]> exportRecipe(
+            @PathVariable Long recipeId,
             @AuthenticationPrincipal Jwt jwt) {
 
         Long userId = currentUserService.getUserId(jwt);
 
         String text =
-            csvExportService.exportRecipes(userId);
+            csvExportService.exportRecipe(
+                recipeId,
+                userId
+            );
 
         return buildTextResponse(
             text,
-            "my-popote-recettes.txt"
+            "my-popote-recette-" + recipeId + ".txt"
         );
     }
 
@@ -87,10 +94,7 @@ public class CsvExportController {
     }
 
     /**
-     * Prépare la réponse HTTP pour l'export texte des recettes.
-     *
-     * Le contenu est explicitement renvoyé en UTF-8 afin de conserver
-     * correctement les accents dans les éditeurs de texte.
+     * Prépare la réponse HTTP pour l'export texte d'une recette.
      */
     private ResponseEntity<byte[]> buildTextResponse(
             String text,
@@ -119,8 +123,8 @@ public class CsvExportController {
     /**
      * Prépare la réponse HTTP utilisée pour télécharger un fichier CSV.
      *
-     * Un BOM UTF-8 est ajouté au début du fichier afin d'améliorer
-     * la reconnaissance des caractères accentués par certains tableurs.
+     * Un BOM UTF-8 est ajouté afin d'améliorer la reconnaissance
+     * des caractères accentués par certains tableurs.
      */
     private ResponseEntity<byte[]> buildCsvResponse(
             String csv,
