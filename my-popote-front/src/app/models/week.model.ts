@@ -19,4 +19,12 @@ export interface GenerateWeekRequest {
   includeWeekend: boolean;
   maxBudget: number | null;
   recipeIds: number[];
+
+  /**
+   * Tags à privilégier pendant la génération.
+   *
+   * Ils représentent des préférences et non
+   * des contraintes obligatoires.
+   */
+  preferredTagIds: number[];
 }

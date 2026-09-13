@@ -87,6 +87,78 @@
   color: #9d2525;
 }
 
+/*
+ * Préférences utilisées pour orienter
+ * la génération automatique de la semaine.
+ */
+.preferences-card {
+  margin-bottom: 1.25rem;
+  padding: 1rem;
+  border: 1px solid #dedede;
+  border-radius: 1rem;
+  background: #ffffff;
+}
+
+.preferences-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.9rem;
+}
+
+.preferences-header h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.preferences-header p {
+  margin: 0.35rem 0 0;
+  font-size: 0.9rem;
+  opacity: 0.7;
+}
+
+.clear-preferences-button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #315f44;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.preference-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.preference-tag {
+  min-height: 40px;
+  padding: 0.5rem 0.8rem;
+  border: 1px solid #bdbdbd;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #333333;
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.preference-tag.selected {
+  border-color: #315f44;
+  background: #315f44;
+  color: #ffffff;
+}
+
+.preferences-info {
+  margin: 0.8rem 0 0;
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+
 .week-toolbar {
   display: flex;
   flex-direction: column;

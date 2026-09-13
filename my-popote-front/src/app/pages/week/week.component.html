@@ -1,14 +1,23 @@
 <section class="week-page">
   <header class="week-header">
     <div>
-      <p class="eyebrow">Mon planning</p>
-      <h1>Ma semaine</h1>
+      <p class="eyebrow">
+        Mon planning
+      </p>
+
+      <h1>
+        Ma semaine
+      </h1>
     </div>
 
     <p *ngIf="week" class="week-cost">
       Coût estimé :
       <strong>
-        {{ week.estimatedCost ?? 0 | number: '1.2-2' }} €
+        {{
+        week.estimatedCost ?? 0
+        | number: '1.2-2'
+        }}
+        €
       </strong>
     </p>
   </header>
@@ -17,19 +26,89 @@
     Chargement du planning…
   </div>
 
-  <div *ngIf="!loading && errorMessage" class="state-card state-card-error">
+  <div *ngIf="
+      !loading &&
+      errorMessage
+    " class="state-card state-card-error">
     {{ errorMessage }}
   </div>
 
-  <div *ngIf="!loading && !errorMessage && !week" class="state-card empty-state">
-    <h2>Aucun planning cette semaine</h2>
+  <section *ngIf="
+      !loading &&
+      !errorMessage &&
+      (!week || viewingCurrentWeek)
+    " class="preferences-card" aria-labelledby="preferences-title">
+    <div class="preferences-header">
+      <div>
+        <h2 id="preferences-title">
+          Préférences pour cette semaine
+        </h2>
+
+        <p>
+          Choisis ce que My Popote doit privilégier.
+          Tu peux sélectionner plusieurs critères.
+        </p>
+      </div>
+
+      <button *ngIf="
+          selectedPreferredTagIds.size > 0
+        " type="button" class="clear-preferences-button" (click)="clearPreferredTags()">
+        Effacer
+      </button>
+    </div>
+
+    <p *ngIf="preferencesLoading" class="preferences-info">
+      Chargement des préférences…
+    </p>
+
+    <div *ngIf="
+        !preferencesLoading &&
+        preferenceTags.length > 0
+      " class="preference-tags">
+      <button *ngFor="let tag of preferenceTags" type="button" class="preference-tag" [class.selected]="
+          isPreferredTagSelected(tag.id)
+        " [attr.aria-pressed]="
+          isPreferredTagSelected(tag.id)
+        " (click)="togglePreferredTag(tag.id)">
+        {{ tag.name }}
+      </button>
+    </div>
+
+    <p *ngIf="preferencesErrorMessage" class="error-message">
+      {{ preferencesErrorMessage }}
+    </p>
+
+    <p *ngIf="
+        !preferencesLoading &&
+        !preferencesErrorMessage &&
+        selectedPreferredTagIds.size === 0
+      " class="preferences-info">
+      Aucune préférence sélectionnée :
+      la génération utilisera simplement
+      les recettes adaptées à la saison.
+    </p>
+  </section>
+
+  <div *ngIf="
+      !loading &&
+      !errorMessage &&
+      !week
+    " class="state-card empty-state">
+    <h2>
+      Aucun planning cette semaine
+    </h2>
 
     <p>
-      Aucun menu n'a encore été généré pour cette semaine.
+      Aucun menu n'a encore été généré
+      pour cette semaine.
     </p>
 
     <button type="button" class="primary-button" [disabled]="generating" (click)="generateWeek()">
-      {{ generating ? 'Génération…' : 'Générer ma semaine' }}
+      {{
+      generating
+      ? 'Génération…'
+      : 'Générer ma semaine'
+      }}
     </button>
 
     <p *ngIf="generationErrorMessage" class="error-message">
@@ -37,12 +116,19 @@
     </p>
   </div>
 
-  <div *ngIf="!loading && week" class="current-week">
+  <div *ngIf="
+      !loading &&
+      week
+    " class="current-week">
     <div class="week-toolbar">
       <p>
         Semaine du
         <strong>
-          {{ weekLabel(week.weekStartDate) }}
+          {{
+          weekLabel(
+          week.weekStartDate
+          )
+          }}
         </strong>
       </p>
 
@@ -57,12 +143,18 @@
 
     <div class="days">
       <article *ngFor="let day of days" class="day-card">
-        <h2>{{ day.label }}</h2>
+        <h2>
+          {{ day.label }}
+        </h2>
 
         <div class="meals">
           <div *ngFor="let meal of day.meals" class="meal-card">
             <span class="meal-type">
-              {{ mealTypeLabel(meal.mealType) }}
+              {{
+              mealTypeLabel(
+              meal.mealType
+              )
+              }}
             </span>
 
             <strong class="meal-name">
@@ -85,24 +177,38 @@
               </label>
 
               <select [id]="'recipe-' + meal.id" [(ngModel)]="
-                  selectedRecipeByMeal[meal.id]
+                  selectedRecipeByMeal[
+                    meal.id
+                  ]
                 ">
                 <option [ngValue]="null">
                   Choisir une recette
                 </option>
 
-                <option *ngFor="let recipe of recipes" [ngValue]="recipe.id" [disabled]="recipe.id === meal.recipeId">
-                  {{ recipeOptionLabel(recipe) }}
+                <option *ngFor="
+                    let recipe of recipes
+                  " [ngValue]="recipe.id" [disabled]="
+                    recipe.id === meal.recipeId
+                  ">
+                  {{
+                  recipeOptionLabel(
+                  recipe
+                  )
+                  }}
                 </option>
               </select>
 
               <div class="replacement-actions">
                 <button type="button" class="primary-button" [disabled]="
-                    !selectedRecipeByMeal[meal.id]
+                    !selectedRecipeByMeal[
+                      meal.id
+                    ]
                   " (click)="
                     replaceMeal(
                       meal,
-                      selectedRecipeByMeal[meal.id]!
+                      selectedRecipeByMeal[
+                        meal.id
+                      ]!
                     )
                   ">
                   Valider
@@ -120,8 +226,13 @@
 
     <div *ngIf="viewingCurrentWeek" class="week-validation">
       <div class="week-actions">
-        <button type="button" class="secondary-button proposal-button" [disabled]="generating || validatingWeek"
-          (click)="generateWeek()">
+        <button type="button" class="
+            secondary-button
+            proposal-button
+          " [disabled]="
+            generating ||
+            validatingWeek
+          " (click)="generateWeek()">
           {{
           generating
           ? 'Nouvelle proposition…'
@@ -129,8 +240,13 @@
           }}
         </button>
 
-        <button type="button" class="primary-button validate-button" [disabled]="validatingWeek || generating"
-          (click)="validateWeek()">
+        <button type="button" class="
+            primary-button
+            validate-button
+          " [disabled]="
+            validatingWeek ||
+            generating
+          " (click)="validateWeek()">
           {{
           validatingWeek
           ? 'Préparation de la liste…'
@@ -150,7 +266,9 @@
   </div>
 
   <section class="history-section">
-    <h2>Semaines passées</h2>
+    <h2>
+      Semaines passées
+    </h2>
 
     <p *ngIf="historyLoading">
       Chargement de l'historique…
@@ -160,24 +278,38 @@
         !historyLoading &&
         history.length === 0
       " class="history-empty">
-      Aucune semaine précédente pour le moment.
+      Aucune semaine précédente
+      pour le moment.
     </p>
 
     <div *ngIf="
         !historyLoading &&
         history.length > 0
       " class="history-list">
-      <button *ngFor="let historicalWeek of history" type="button" class="history-card"
-        (click)="viewHistoryWeek(historicalWeek)">
-        <span>Semaine du</span>
+      <button *ngFor="
+          let historicalWeek
+          of history
+        " type="button" class="history-card" (click)="
+          viewHistoryWeek(
+            historicalWeek
+          )
+        ">
+        <span>
+          Semaine du
+        </span>
 
         <strong>
-          {{ weekLabel(historicalWeek.weekStartDate) }}
+          {{
+          weekLabel(
+          historicalWeek.weekStartDate
+          )
+          }}
         </strong>
 
         <span>
           {{
-          historicalWeek.estimatedCost ?? 0
+          historicalWeek.estimatedCost
+          ?? 0
           | number: '1.2-2'
           }}
           €

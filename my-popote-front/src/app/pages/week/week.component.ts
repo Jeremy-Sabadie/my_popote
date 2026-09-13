@@ -8,7 +8,7 @@ import { RecipeService } from '../../core/services/recipe.service';
 import { ShoppingService } from '../../core/services/shopping.service';
 import { WeekService } from '../../core/services/week.service';
 import { PlannedMeal } from '../../models/planned-meal.model';
-import { Recipe } from '../../models/recipe.model';
+import { Recipe, RecipeTag } from '../../models/recipe.model';
 import { Week } from '../../models/week.model';
 
 interface WeekDay {
@@ -29,12 +29,16 @@ export class WeekComponent implements OnInit {
   history: Week[] = [];
   recipes: Recipe[] = [];
 
+  preferenceTags: RecipeTag[] = [];
+  selectedPreferredTagIds = new Set<number>();
+
   days: WeekDay[] = [];
 
   loading = true;
   generating = false;
   historyLoading = true;
   validatingWeek = false;
+  preferencesLoading = true;
 
   replacingMealId: number | null = null;
 
@@ -44,6 +48,7 @@ export class WeekComponent implements OnInit {
   generationErrorMessage = '';
   replacementErrorMessage = '';
   validationErrorMessage = '';
+  preferencesErrorMessage = '';
 
   weekStartDate = '';
 
@@ -59,6 +64,7 @@ export class WeekComponent implements OnInit {
 
     this.loadWeek();
     this.loadHistory();
+    this.loadPreferenceTags();
   }
 
   /**
@@ -89,6 +95,55 @@ export class WeekComponent implements OnInit {
   }
 
   /**
+   * Charge les tags disponibles pour les préférences
+   * de génération de la semaine.
+   */
+  private loadPreferenceTags(): void {
+    this.preferencesLoading = true;
+    this.preferencesErrorMessage = '';
+
+    this.recipeService.getTags().subscribe({
+      next: (tags) => {
+        this.preferenceTags = tags;
+        this.preferencesLoading = false;
+      },
+
+      error: () => {
+        this.preferenceTags = [];
+        this.preferencesLoading = false;
+        this.preferencesErrorMessage =
+          'Impossible de charger les préférences pour le moment.';
+      },
+    });
+  }
+
+  /**
+   * Active ou désactive un tag dans les préférences.
+   */
+  togglePreferredTag(tagId: number): void {
+    if (this.selectedPreferredTagIds.has(tagId)) {
+      this.selectedPreferredTagIds.delete(tagId);
+      return;
+    }
+
+    this.selectedPreferredTagIds.add(tagId);
+  }
+
+  /**
+   * Indique si un tag est actuellement sélectionné.
+   */
+  isPreferredTagSelected(tagId: number): boolean {
+    return this.selectedPreferredTagIds.has(tagId);
+  }
+
+  /**
+   * Efface toutes les préférences sélectionnées.
+   */
+  clearPreferredTags(): void {
+    this.selectedPreferredTagIds.clear();
+  }
+
+  /**
    * Génère la semaine à partir des recettes disponibles.
    */
   generateWeek(): void {
@@ -116,6 +171,7 @@ export class WeekComponent implements OnInit {
             includeWeekend: true,
             maxBudget: null,
             recipeIds: recipes.map((recipe) => recipe.id),
+            preferredTagIds: [...this.selectedPreferredTagIds],
           })
           .subscribe({
             next: (week) => {
