@@ -91,10 +91,8 @@
                   Choisir une recette
                 </option>
 
-                <option *ngFor="let recipe of recipes" [ngValue]="recipe.id" [disabled]="
-                    recipe.id === meal.recipeId
-                  ">
-                  {{ recipe.name }}
+                <option *ngFor="let recipe of recipes" [ngValue]="recipe.id" [disabled]="recipe.id === meal.recipeId">
+                  {{ recipeOptionLabel(recipe) }}
                 </option>
               </select>
 
@@ -178,7 +176,11 @@
         </strong>
 
         <span>
-          {{ historicalWeek.estimatedCost ?? 0 | number: '1.2-2' }} €
+          {{
+          historicalWeek.estimatedCost ?? 0
+          | number: '1.2-2'
+          }}
+          €
         </span>
       </button>
     </div>

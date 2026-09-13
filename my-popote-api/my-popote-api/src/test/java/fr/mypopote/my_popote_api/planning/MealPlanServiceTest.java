@@ -258,4 +258,112 @@ class MealPlanServiceTest {
             monday.plusDays(6)
         );
     }
+
+    @Test
+    void shouldPreferRecipesMatchingWeekSeason() {
+        Long userId = 1L;
+
+        LocalDate monday =
+            LocalDate.of(2026, 7, 6);
+
+        User user = new User(
+            "jeremy@example.com",
+            "hashed-password",
+            "Jérémy"
+        );
+
+        Recipe summerRecipe = new Recipe(
+            user,
+            "Salade de poulet",
+            "MEAT",
+            2,
+            new BigDecimal("5.00"),
+            null
+        );
+
+        summerRecipe.addSeason("SUMMER");
+
+        Recipe winterRecipe = new Recipe(
+            user,
+            "Tartiflette",
+            "MEAT",
+            2,
+            new BigDecimal("7.00"),
+            null
+        );
+
+        winterRecipe.addSeason("WINTER");
+
+        GenerateMealPlanRequest request =
+            new GenerateMealPlanRequest(
+                monday,
+                false,
+                null,
+                List.of(
+                    10L,
+                    20L
+                )
+            );
+
+        when(
+            recipeRepository.findByIdAndUserId(
+                10L,
+                userId
+            )
+        ).thenReturn(
+            Optional.of(summerRecipe)
+        );
+
+        when(
+            recipeRepository.findByIdAndUserId(
+                20L,
+                userId
+            )
+        ).thenReturn(
+            Optional.of(winterRecipe)
+        );
+
+        when(
+            mealPlanRepository
+                .findByUserIdAndWeekStartDate(
+                    userId,
+                    monday
+                )
+        ).thenReturn(
+            Optional.empty()
+        );
+
+        when(
+            mealPlanRepository.save(
+                any(MealPlan.class)
+            )
+        ).thenAnswer(
+            invocation ->
+                invocation.getArgument(0)
+        );
+
+        when(
+            plannedMealRepository.saveAll(
+                anyList()
+            )
+        ).thenAnswer(
+            invocation ->
+                invocation.getArgument(0)
+        );
+
+        MealPlanResponse result =
+            mealPlanService.generate(
+                userId,
+                request
+            );
+
+        assertThat(result.meals())
+            .hasSize(10);
+
+        assertThat(result.meals())
+            .allSatisfy(meal ->
+                assertThat(meal.recipeName())
+                    .isEqualTo("Salade de poulet")
+            );
+    }
 }

@@ -5,6 +5,7 @@ import fr.mypopote.my_popote_api.planning.dto.MealPlanResponse;
 import fr.mypopote.my_popote_api.planning.dto.PlannedMealResponse;
 import fr.mypopote.my_popote_api.recipe.Recipe;
 import fr.mypopote.my_popote_api.recipe.RecipeRepository;
+import fr.mypopote.my_popote_api.recipe.RecipeSeason;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -109,10 +111,9 @@ public class MealPlanService {
         /*
          * Supprime l'ancienne proposition.
          */
-        plannedMealRepository
-            .deleteAllByMealPlanId(
-                savedPlan.getId()
-            );
+        plannedMealRepository.deleteAllByMealPlanId(
+            savedPlan.getId()
+        );
 
         /*
          * Force les DELETE avant les nouveaux INSERT.
@@ -263,8 +264,7 @@ public class MealPlanService {
                     )
                     .orElseThrow(() ->
                         new IllegalArgumentException(
-                            "Recipe not found: "
-                                + recipeId
+                            "Recipe not found: " + recipeId
                         )
                     );
 
@@ -279,6 +279,16 @@ public class MealPlanService {
     /**
      * Répartit les recettes en rotation.
      *
+     * Les recettes correspondant à la saison de la semaine
+     * sont privilégiées.
+     *
+     * Les recettes sans saison sont considérées comme
+     * polyvalentes et restent disponibles toute l'année.
+     *
+     * Si aucune recette n'est compatible avec la saison,
+     * toutes les recettes sont utilisées comme solution
+     * de repli afin de toujours pouvoir générer un planning.
+     *
      * Sans week-end : 5 jours x 2 repas = 10.
      * Avec week-end : 7 jours x 2 repas = 14.
      */
@@ -288,6 +298,12 @@ public class MealPlanService {
     ) {
         List<PlannedMeal> meals =
             new ArrayList<>();
+
+        List<Recipe> eligibleRecipes =
+            selectRecipesForSeason(
+                recipes,
+                mealPlan.getWeekStartDate()
+            );
 
         int numberOfDays =
             mealPlan.isIncludeWeekend()
@@ -314,9 +330,9 @@ public class MealPlanService {
                 )
             ) {
                 Recipe recipe =
-                    recipes.get(
+                    eligibleRecipes.get(
                         recipeIndex
-                            % recipes.size()
+                            % eligibleRecipes.size()
                     );
 
                 meals.add(
@@ -333,6 +349,78 @@ public class MealPlanService {
         }
 
         return meals;
+    }
+
+    /**
+     * Sélectionne les recettes compatibles avec
+     * la saison correspondant à la semaine.
+     *
+     * Une recette sans saison est utilisable toute l'année.
+     */
+    private List<Recipe> selectRecipesForSeason(
+        List<Recipe> recipes,
+        LocalDate weekStartDate
+    ) {
+        String season =
+            getSeason(
+                weekStartDate
+            );
+
+        List<Recipe> eligibleRecipes =
+            recipes.stream()
+                .filter(recipe ->
+                    recipe.getSeasons().isEmpty() ||
+                    recipe.getSeasons()
+                        .stream()
+                        .map(RecipeSeason::getSeason)
+                        .anyMatch(recipeSeason ->
+                            recipeSeason.equalsIgnoreCase(
+                                season
+                            )
+                        )
+                )
+                .toList();
+
+        if (eligibleRecipes.isEmpty()) {
+            return recipes;
+        }
+
+        return eligibleRecipes;
+    }
+
+    /**
+     * Détermine la saison utilisée pour la génération.
+     *
+     * La première version repose volontairement sur
+     * les saisons météorologiques par mois complet.
+     */
+    private String getSeason(
+        LocalDate date
+    ) {
+        Month month =
+            date.getMonth();
+
+        return switch (month) {
+            case DECEMBER,
+                 JANUARY,
+                 FEBRUARY ->
+                "WINTER";
+
+            case MARCH,
+                 APRIL,
+                 MAY ->
+                "SPRING";
+
+            case JUNE,
+                 JULY,
+                 AUGUST ->
+                "SUMMER";
+
+            case SEPTEMBER,
+                 OCTOBER,
+                 NOVEMBER ->
+                "AUTUMN";
+        };
     }
 
     /**
