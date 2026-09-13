@@ -127,7 +127,8 @@ public class MealPlanService {
         List<PlannedMeal> meals =
             generateMeals(
                 savedPlan,
-                recipes
+                recipes,
+                request.preferredTagIds()
             );
 
         meals =
@@ -279,30 +280,33 @@ public class MealPlanService {
     /**
      * Répartit les recettes en rotation.
      *
-     * Les recettes correspondant à la saison de la semaine
-     * sont privilégiées.
+     * La saison est prise en compte en premier.
      *
-     * Les recettes sans saison sont considérées comme
-     * polyvalentes et restent disponibles toute l'année.
-     *
-     * Si aucune recette n'est compatible avec la saison,
-     * toutes les recettes sont utilisées comme solution
-     * de repli afin de toujours pouvoir générer un planning.
+     * Les tags choisis par l'utilisateur servent ensuite
+     * à privilégier les recettes qui correspondent
+     * le mieux à ses préférences de la semaine.
      *
      * Sans week-end : 5 jours x 2 repas = 10.
      * Avec week-end : 7 jours x 2 repas = 14.
      */
     private List<PlannedMeal> generateMeals(
         MealPlan mealPlan,
-        List<Recipe> recipes
+        List<Recipe> recipes,
+        List<Long> preferredTagIds
     ) {
         List<PlannedMeal> meals =
             new ArrayList<>();
 
-        List<Recipe> eligibleRecipes =
+        List<Recipe> seasonalRecipes =
             selectRecipesForSeason(
                 recipes,
                 mealPlan.getWeekStartDate()
+            );
+
+        List<Recipe> eligibleRecipes =
+            selectRecipesForPreferredTags(
+                seasonalRecipes,
+                preferredTagIds
             );
 
         int numberOfDays =
@@ -356,6 +360,10 @@ public class MealPlanService {
      * la saison correspondant à la semaine.
      *
      * Une recette sans saison est utilisable toute l'année.
+     *
+     * Si aucune recette n'est compatible,
+     * toutes les recettes sont conservées
+     * afin de ne jamais bloquer la génération.
      */
     private List<Recipe> selectRecipesForSeason(
         List<Recipe> recipes,
@@ -386,6 +394,84 @@ public class MealPlanService {
         }
 
         return eligibleRecipes;
+    }
+
+    /**
+     * Privilégie les recettes correspondant
+     * le mieux aux tags choisis par l'utilisateur.
+     *
+     * Chaque tag correspondant vaut un point.
+     *
+     * Exemple :
+     * - Sèche + Protéiné = score 2
+     * - Protéiné uniquement = score 1
+     * - Aucun des deux = score 0
+     *
+     * Seules les recettes ayant le meilleur score
+     * sont utilisées.
+     *
+     * Si aucun tag n'est choisi ou si aucune recette
+     * ne correspond aux préférences, la sélection
+     * saisonnière est conservée telle quelle.
+     */
+    private List<Recipe> selectRecipesForPreferredTags(
+        List<Recipe> recipes,
+        List<Long> preferredTagIds
+    ) {
+        if (
+            preferredTagIds == null ||
+            preferredTagIds.isEmpty()
+        ) {
+            return recipes;
+        }
+
+        int maxScore =
+            recipes.stream()
+                .mapToInt(recipe ->
+                    calculatePreferredTagScore(
+                        recipe,
+                        preferredTagIds
+                    )
+                )
+                .max()
+                .orElse(0);
+
+        /*
+         * Aucun tag préféré n'est présent
+         * dans les recettes disponibles.
+         */
+        if (maxScore == 0) {
+            return recipes;
+        }
+
+        return recipes.stream()
+            .filter(recipe ->
+                calculatePreferredTagScore(
+                    recipe,
+                    preferredTagIds
+                ) == maxScore
+            )
+            .toList();
+    }
+
+    /**
+     * Calcule combien de tags préférés
+     * sont présents sur une recette.
+     */
+    private int calculatePreferredTagScore(
+        Recipe recipe,
+        List<Long> preferredTagIds
+    ) {
+        return (int) recipe
+            .getTags()
+            .stream()
+            .filter(tag ->
+                tag.getId() != null &&
+                preferredTagIds.contains(
+                    tag.getId()
+                )
+            )
+            .count();
     }
 
     /**

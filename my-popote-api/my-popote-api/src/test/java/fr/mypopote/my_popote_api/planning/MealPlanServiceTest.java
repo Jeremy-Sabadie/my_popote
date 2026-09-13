@@ -4,7 +4,9 @@ import fr.mypopote.my_popote_api.planning.dto.GenerateMealPlanRequest;
 import fr.mypopote.my_popote_api.planning.dto.MealPlanResponse;
 import fr.mypopote.my_popote_api.recipe.Recipe;
 import fr.mypopote.my_popote_api.recipe.RecipeRepository;
+import fr.mypopote.my_popote_api.recipe.Tag;
 import fr.mypopote.my_popote_api.user.User;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -19,6 +21,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -361,9 +364,153 @@ class MealPlanServiceTest {
             .hasSize(10);
 
         assertThat(result.meals())
-            .allSatisfy(meal ->
-                assertThat(meal.recipeName())
-                    .isEqualTo("Salade de poulet")
+            .allSatisfy(
+                meal ->
+                    assertThat(
+                        meal.recipeName()
+                    ).isEqualTo(
+                        "Salade de poulet"
+                    )
             );
+    }
+
+    @Test
+    void shouldPreferRecipesMatchingPreferredTags() {
+        Long userId = 1L;
+
+        LocalDate monday =
+            LocalDate.of(2026, 7, 6);
+
+        User user = new User(
+            "jeremy@example.com",
+            "hashed-password",
+            "Jérémy"
+        );
+
+        Recipe preferredRecipe =
+            new Recipe(
+                user,
+                "Poulet protéiné",
+                "MEAT",
+                2,
+                new BigDecimal("5.00"),
+                null
+            );
+
+        preferredRecipe.addSeason(
+            "SUMMER"
+        );
+
+        Tag preferredTag =
+            mock(Tag.class);
+
+        when(
+            preferredTag.getId()
+        ).thenReturn(
+            100L
+        );
+
+        preferredRecipe.addTag(
+            preferredTag
+        );
+
+        Recipe otherRecipe =
+            new Recipe(
+                user,
+                "Pâtes tomate",
+                "VEGETARIAN",
+                2,
+                new BigDecimal("3.00"),
+                null
+            );
+
+        otherRecipe.addSeason(
+            "SUMMER"
+        );
+
+        GenerateMealPlanRequest request =
+            new GenerateMealPlanRequest(
+                monday,
+                false,
+                null,
+                List.of(
+                    10L,
+                    20L
+                ),
+                List.of(
+                    100L
+                )
+            );
+
+        when(
+            recipeRepository.findByIdAndUserId(
+                10L,
+                userId
+            )
+        ).thenReturn(
+            Optional.of(
+                preferredRecipe
+            )
+        );
+
+        when(
+            recipeRepository.findByIdAndUserId(
+                20L,
+                userId
+            )
+        ).thenReturn(
+            Optional.of(
+                otherRecipe
+            )
+        );
+
+        when(
+            mealPlanRepository
+                .findByUserIdAndWeekStartDate(
+                    userId,
+                    monday
+                )
+        ).thenReturn(
+            Optional.empty()
+        );
+
+        when(
+            mealPlanRepository.save(
+                any(MealPlan.class)
+            )
+        ).thenAnswer(
+            invocation ->
+                invocation.getArgument(0)
+        );
+
+        when(
+            plannedMealRepository.saveAll(
+                anyList()
+            )
+        ).thenAnswer(
+            invocation ->
+                invocation.getArgument(0)
+        );
+
+        MealPlanResponse result =
+            mealPlanService.generate(
+                userId,
+                request
+            );
+
+        assertThat(
+            result.meals()
+        ).hasSize(10);
+
+        assertThat(
+            result.meals()
+        ).allSatisfy(
+            meal ->
+                assertThat(
+                    meal.recipeName()
+                ).isEqualTo(
+                    "Poulet protéiné"
+                )
+        );
     }
 }

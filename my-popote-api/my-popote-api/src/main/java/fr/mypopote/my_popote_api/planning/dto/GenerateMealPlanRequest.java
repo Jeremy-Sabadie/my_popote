@@ -11,8 +11,11 @@ import java.util.List;
 /**
  * Données nécessaires pour générer automatiquement une semaine.
  *
- * Les recettes sont choisies par l'utilisateur.
- * Le backend se charge ensuite de les répartir dans les repas.
+ * Les recettes candidates sont choisies par l'utilisateur.
+ *
+ * Les tags préférés permettent au moteur de génération
+ * de privilégier certains types de recettes sans en faire
+ * des contraintes obligatoires.
  */
 public record GenerateMealPlanRequest(
 
@@ -25,7 +28,28 @@ public record GenerateMealPlanRequest(
     BigDecimal maxBudget,
 
     @NotEmpty
-    List<@Positive Long> recipeIds
+    List<Long> recipeIds,
+
+    List<Long> preferredTagIds
 
 ) {
+
+    /**
+     * Constructeur conservé pour les appels existants
+     * qui ne fournissent pas encore de préférences.
+     */
+    public GenerateMealPlanRequest(
+        LocalDate weekStartDate,
+        boolean includeWeekend,
+        BigDecimal maxBudget,
+        List<Long> recipeIds
+    ) {
+        this(
+            weekStartDate,
+            includeWeekend,
+            maxBudget,
+            recipeIds,
+            List.of()
+        );
+    }
 }
