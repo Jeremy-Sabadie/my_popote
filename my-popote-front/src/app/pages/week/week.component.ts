@@ -83,8 +83,7 @@ export class WeekComponent implements OnInit {
           return;
         }
 
-        this.errorMessage =
-          'Impossible de charger le planning pour le moment.';
+        this.errorMessage = 'Impossible de charger le planning pour le moment.';
       },
     });
   }
@@ -135,8 +134,7 @@ export class WeekComponent implements OnInit {
 
       error: () => {
         this.generating = false;
-        this.generationErrorMessage =
-          'Impossible de charger vos recettes.';
+        this.generationErrorMessage = 'Impossible de charger vos recettes.';
       },
     });
   }
@@ -180,8 +178,7 @@ export class WeekComponent implements OnInit {
    */
   replaceMeal(meal: PlannedMeal, recipeId: number): void {
     if (!recipeId) {
-      this.replacementErrorMessage =
-        'Choisissez une recette de remplacement.';
+      this.replacementErrorMessage = 'Choisissez une recette de remplacement.';
       return;
     }
 
@@ -196,9 +193,7 @@ export class WeekComponent implements OnInit {
         this.week = {
           ...this.week,
           meals: this.week.meals.map((currentMeal) =>
-            currentMeal.id === updatedMeal.id
-              ? updatedMeal
-              : currentMeal,
+            currentMeal.id === updatedMeal.id ? updatedMeal : currentMeal,
           ),
         };
 
@@ -217,11 +212,29 @@ export class WeekComponent implements OnInit {
   }
 
   /**
+   * Construit le libellé affiché dans la liste
+   * des recettes de remplacement.
+   *
+   * Exemple :
+   * Poulet curry — Hiver · Sport · Protéiné
+   */
+  recipeOptionLabel(recipe: Recipe): string {
+    const seasons = recipe.seasons ?? [];
+
+    const tags = (recipe.tags ?? []).map((tag) => tag.name);
+
+    const characteristics = [...seasons, ...tags];
+
+    if (characteristics.length === 0) {
+      return recipe.name;
+    }
+
+    return `${recipe.name} — ${characteristics.join(' · ')}`;
+  }
+
+  /**
    * Valide la semaine en générant la liste de courses
    * correspondant au planning.
-   *
-   * Une fois la liste créée, l'utilisateur est envoyé
-   * vers l'écran Courses.
    */
   validateWeek(): void {
     if (!this.week || !this.viewingCurrentWeek) {
@@ -231,26 +244,24 @@ export class WeekComponent implements OnInit {
     this.validatingWeek = true;
     this.validationErrorMessage = '';
 
-    this.shoppingService
-      .generateFromMealPlan(this.week.id)
-      .subscribe({
-        next: (shoppingList) => {
-          this.validatingWeek = false;
+    this.shoppingService.generateFromMealPlan(this.week.id).subscribe({
+      next: (shoppingList) => {
+        this.validatingWeek = false;
 
-          this.router.navigate(['/shopping'], {
-            queryParams: {
-              listId: shoppingList.id,
-            },
-          });
-        },
+        this.router.navigate(['/shopping'], {
+          queryParams: {
+            listId: shoppingList.id,
+          },
+        });
+      },
 
-        error: () => {
-          this.validatingWeek = false;
+      error: () => {
+        this.validatingWeek = false;
 
-          this.validationErrorMessage =
-            'La liste de courses n’a pas pu être générée.';
-        },
-      });
+        this.validationErrorMessage =
+          'La liste de courses n’a pas pu être générée.';
+      },
+    });
   }
 
   /**
@@ -262,14 +273,9 @@ export class WeekComponent implements OnInit {
     this.weekService.getHistory().subscribe({
       next: (history) => {
         this.history = history
-          .filter(
-            (week) =>
-              week.weekStartDate < this.weekStartDate,
-          )
+          .filter((week) => week.weekStartDate < this.weekStartDate)
           .sort((weekA, weekB) =>
-            weekB.weekStartDate.localeCompare(
-              weekA.weekStartDate,
-            ),
+            weekB.weekStartDate.localeCompare(weekA.weekStartDate),
           );
 
         this.historyLoading = false;
@@ -311,46 +317,29 @@ export class WeekComponent implements OnInit {
     const monday = new Date(today);
 
     if (day === 0) {
-      // Dimanche : le lundi suivant est demain.
-      monday.setDate(
-        today.getDate() + 1,
-      );
+      monday.setDate(today.getDate() + 1);
     } else if (day === 6) {
-      // Samedi : le lundi suivant est dans deux jours.
-      monday.setDate(
-        today.getDate() + 2,
-      );
+      monday.setDate(today.getDate() + 2);
     } else {
-      // Du lundi au vendredi :
-      // retour au lundi de la semaine courante.
-      monday.setDate(
-        today.getDate() + (1 - day),
-      );
+      monday.setDate(today.getDate() + (1 - day));
     }
 
     return this.formatDateForApi(monday);
   }
 
   private buildDays(week: Week): WeekDay[] {
-    const groupedMeals =
-      new Map<string, PlannedMeal[]>();
+    const groupedMeals = new Map<string, PlannedMeal[]>();
 
     for (const meal of week.meals) {
-      const meals =
-        groupedMeals.get(meal.mealDate) ?? [];
+      const meals = groupedMeals.get(meal.mealDate) ?? [];
 
       meals.push(meal);
 
-      groupedMeals.set(
-        meal.mealDate,
-        meals,
-      );
+      groupedMeals.set(meal.mealDate, meals);
     }
 
     return [...groupedMeals.entries()]
-      .sort(([dateA], [dateB]) =>
-        dateA.localeCompare(dateB),
-      )
+      .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
       .map(([date, meals]) => ({
         date,
         label: this.formatDayLabel(date),
@@ -363,34 +352,25 @@ export class WeekComponent implements OnInit {
   }
 
   private formatDayLabel(date: string): string {
-    const parsedDate =
-      new Date(`${date}T12:00:00`);
+    const parsedDate = new Date(`${date}T12:00:00`);
 
-    const label =
-      new Intl.DateTimeFormat('fr-FR', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-      }).format(parsedDate);
+    const label = new Intl.DateTimeFormat('fr-FR', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+    }).format(parsedDate);
 
-    return (
-      label.charAt(0).toUpperCase() +
-      label.slice(1)
-    );
+    return label.charAt(0).toUpperCase() + label.slice(1);
   }
 
   weekLabel(date: string): string {
-    const parsedDate =
-      new Date(`${date}T12:00:00`);
+    const parsedDate = new Date(`${date}T12:00:00`);
 
-    return new Intl.DateTimeFormat(
-      'fr-FR',
-      {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-      },
-    ).format(parsedDate);
+    return new Intl.DateTimeFormat('fr-FR', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    }).format(parsedDate);
   }
 
   mealTypeLabel(mealType: string): string {
@@ -401,15 +381,10 @@ export class WeekComponent implements OnInit {
       SNACK: 'Collation',
     };
 
-    return (
-      labels[mealType.toUpperCase()] ??
-      mealType
-    );
+    return labels[mealType.toUpperCase()] ?? mealType;
   }
 
-  private mealTypeOrder(
-    mealType: string,
-  ): number {
+  private mealTypeOrder(mealType: string): number {
     const order: Record<string, number> = {
       BREAKFAST: 1,
       LUNCH: 2,
@@ -417,35 +392,20 @@ export class WeekComponent implements OnInit {
       DINNER: 4,
     };
 
-    return (
-      order[mealType.toUpperCase()] ??
-      99
-    );
+    return order[mealType.toUpperCase()] ?? 99;
   }
 
-  private formatDateForApi(
-    date: Date,
-  ): string {
-    const year =
-      date.getFullYear();
+  private formatDateForApi(date: Date): string {
+    const year = date.getFullYear();
 
-    const month =
-      String(
-        date.getMonth() + 1,
-      ).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
 
-    const day =
-      String(
-        date.getDate(),
-      ).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
 
     return `${year}-${month}-${day}`;
   }
 
   get viewingCurrentWeek(): boolean {
-    return (
-      this.week?.weekStartDate ===
-      this.weekStartDate
-    );
+    return this.week?.weekStartDate === this.weekStartDate;
   }
 }
