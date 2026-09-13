@@ -1,1 +1,54 @@
-<p>shopping works!</p>
+<section class="shopping-page">
+  <header class="shopping-header">
+    <div>
+      <p class="eyebrow">Ma semaine</p>
+      <h1>Liste de courses</h1>
+    </div>
+
+    <button *ngIf="
+        shoppingList &&
+        shoppingList.items.length > 0
+      " type="button" class="export-button" (click)="exportTxt()">
+      Télécharger la liste (.txt)
+    </button>
+  </header>
+
+  <p *ngIf="loading">
+    Chargement de la liste…
+  </p>
+
+  <p *ngIf="!loading && errorMessage" class="error-message">
+    {{ errorMessage }}
+  </p>
+
+  <div *ngIf="
+      !loading &&
+      shoppingList &&
+      shoppingList.items.length === 0
+    " class="empty-state">
+    Aucun article à acheter.
+  </div>
+
+  <div *ngIf="
+      !loading &&
+      shoppingList &&
+      shoppingList.items.length > 0
+    " class="shopping-list">
+    <article *ngFor="let item of shoppingList.items" class="shopping-item">
+      <div>
+        <strong>
+          {{ item.ingredientName }}
+        </strong>
+
+        <p>
+          {{ item.quantity }}
+          {{ item.unit }}
+        </p>
+      </div>
+
+      <span *ngIf="item.manual" class="manual-badge">
+        Ajout manuel
+      </span>
+    </article>
+  </div>
+</section>

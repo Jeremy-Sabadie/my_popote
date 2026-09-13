@@ -1,0 +1,247 @@
+:host {
+  display: block;
+}
+
+.week-page {
+  width: min(100%, 760px);
+  margin: 0 auto;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+.week-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.week-header h1 {
+  margin: 0;
+  font-size: 1.8rem;
+}
+
+.eyebrow {
+  margin: 0 0 0.25rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  opacity: 0.65;
+}
+
+.week-cost {
+  margin: 0;
+}
+
+.state-card {
+  padding: 1.25rem;
+  border: 1px solid #dedede;
+  border-radius: 1rem;
+  background: #ffffff;
+  text-align: center;
+}
+
+.state-card-error {
+  border-color: #d99;
+}
+
+.empty-state h2 {
+  margin-top: 0;
+}
+
+.empty-state p {
+  opacity: 0.75;
+}
+
+.primary-button,
+.secondary-button,
+.replace-button {
+  min-height: 44px;
+  padding: 0.7rem 1rem;
+  border-radius: 0.75rem;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.primary-button {
+  border: 0;
+  background: #315f44;
+  color: #ffffff;
+}
+
+.primary-button:disabled,
+.secondary-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.secondary-button,
+.replace-button {
+  border: 1px solid #315f44;
+  background: #ffffff;
+  color: #315f44;
+}
+
+.error-message {
+  margin: 1rem 0;
+  color: #9d2525;
+}
+
+.week-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.week-toolbar p {
+  margin: 0;
+}
+
+.days {
+  display: grid;
+  gap: 1rem;
+}
+
+.day-card {
+  padding: 1rem;
+  border: 1px solid #dedede;
+  border-radius: 1rem;
+  background: #ffffff;
+}
+
+.day-card h2 {
+  margin: 0 0 0.9rem;
+  font-size: 1.1rem;
+}
+
+.meals {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.meal-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.85rem;
+  border-radius: 0.75rem;
+  background: #f5f5f5;
+}
+
+.meal-type {
+  font-size: 0.8rem;
+  font-weight: 600;
+  opacity: 0.65;
+}
+
+.meal-name {
+  font-size: 1rem;
+}
+
+.replace-button {
+  align-self: flex-start;
+  min-height: 38px;
+  padding: 0.5rem 0.8rem;
+}
+
+.replacement-panel {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 0.25rem;
+}
+
+.replacement-panel label {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.replacement-panel select {
+  width: 100%;
+  min-height: 46px;
+  padding: 0.6rem;
+  border: 1px solid #cfcfcf;
+  border-radius: 0.65rem;
+  background: #ffffff;
+  font: inherit;
+}
+
+.replacement-actions {
+  display: flex;
+  gap: 0.65rem;
+}
+
+.week-validation {
+  margin-top: 1.5rem;
+}
+
+.week-actions {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.validate-button,
+.proposal-button {
+  width: 100%;
+  min-height: 52px;
+}
+
+.history-section {
+  margin-top: 2rem;
+}
+
+.history-section h2 {
+  margin-bottom: 1rem;
+  font-size: 1.25rem;
+}
+
+.history-empty {
+  opacity: 0.7;
+}
+
+.history-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.history-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 56px;
+  padding: 0.9rem 1rem;
+  border: 1px solid #dedede;
+  border-radius: 0.8rem;
+  background: #ffffff;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.history-card span {
+  opacity: 0.7;
+}
+
+@media (min-width: 640px) {
+  .week-page {
+    padding: 1.5rem;
+  }
+
+  .week-header {
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: space-between;
+  }
+
+  .week-toolbar {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .week-actions {
+    grid-template-columns: 1fr 1fr;
+  }
+}
