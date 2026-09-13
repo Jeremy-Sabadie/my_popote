@@ -58,7 +58,9 @@ public class ShoppingListService {
         MealPlan mealPlan = mealPlanRepository
             .findByIdAndUserId(mealPlanId, userId)
             .orElseThrow(() ->
-                new IllegalArgumentException("Meal plan not found")
+                new IllegalArgumentException(
+                    "Meal plan not found"
+                )
             );
 
         List<PlannedMeal> plannedMeals =
@@ -67,12 +69,15 @@ public class ShoppingListService {
                     mealPlanId
                 );
 
-        ShoppingList shoppingList = shoppingListRepository
-            .findByMealPlanIdAndMealPlanUserId(
-                mealPlanId,
-                userId
-            )
-            .orElseGet(() -> new ShoppingList(mealPlan));
+        ShoppingList shoppingList =
+            shoppingListRepository
+                .findByMealPlanIdAndMealPlanUserId(
+                    mealPlanId,
+                    userId
+                )
+                .orElseGet(() ->
+                    new ShoppingList(mealPlan)
+                );
 
         shoppingList =
             shoppingListRepository.save(shoppingList);
@@ -118,6 +123,16 @@ public class ShoppingListService {
             .deleteAllByShoppingListIdAndManualFalse(
                 shoppingList.getId()
             );
+
+        /*
+         * Important :
+         * force l'exécution SQL des DELETE avant les nouveaux INSERT.
+         *
+         * Sans ce flush, Hibernate peut différer la suppression
+         * jusqu'après les insertions et provoquer une violation
+         * de la contrainte unique uk_shopping_item.
+         */
+        shoppingItemRepository.flush();
 
         Map<IngredientUnitKey, AggregatedIngredient> aggregated =
             new LinkedHashMap<>();
@@ -191,11 +206,11 @@ public class ShoppingListService {
 
             boolean checked =
                 previousState != null
-                && previousState.checked();
+                    && previousState.checked();
 
             boolean alreadyOwned =
                 previousState != null
-                && previousState.alreadyOwned();
+                    && previousState.alreadyOwned();
 
             generatedItems.add(
                 new ShoppingItem(
@@ -211,7 +226,9 @@ public class ShoppingListService {
             );
         }
 
-        shoppingItemRepository.saveAll(generatedItems);
+        shoppingItemRepository.saveAll(
+            generatedItems
+        );
 
         return reloadResponse(
             shoppingList,
@@ -254,10 +271,14 @@ public class ShoppingListService {
                 userId
             );
 
-        shoppingItem.setChecked(checked);
+        shoppingItem.setChecked(
+            checked
+        );
 
         return toItemResponse(
-            shoppingItemRepository.save(shoppingItem)
+            shoppingItemRepository.save(
+                shoppingItem
+            )
         );
     }
 
@@ -277,14 +298,18 @@ public class ShoppingListService {
                 userId
             );
 
-        shoppingItem.setAlreadyOwned(alreadyOwned);
+        shoppingItem.setAlreadyOwned(
+            alreadyOwned
+        );
 
         if (alreadyOwned) {
             shoppingItem.setChecked(false);
         }
 
         return toItemResponse(
-            shoppingItemRepository.save(shoppingItem)
+            shoppingItemRepository.save(
+                shoppingItem
+            )
         );
     }
 
@@ -308,11 +333,15 @@ public class ShoppingListService {
                 shoppingList,
                 request.name().trim(),
                 request.quantity(),
-                request.unit().trim().toUpperCase()
+                request.unit()
+                    .trim()
+                    .toUpperCase()
             );
 
         return toItemResponse(
-            shoppingItemRepository.save(shoppingItem)
+            shoppingItemRepository.save(
+                shoppingItem
+            )
         );
     }
 
@@ -374,13 +403,17 @@ public class ShoppingListService {
 
         List<ShoppingItemResponse> itemsToBuy =
             items.stream()
-                .filter(item -> !item.isAlreadyOwned())
+                .filter(item ->
+                    !item.isAlreadyOwned()
+                )
                 .map(this::toItemResponse)
                 .toList();
 
         List<ShoppingItemResponse> alreadyOwnedItems =
             items.stream()
-                .filter(ShoppingItem::isAlreadyOwned)
+                .filter(
+                    ShoppingItem::isAlreadyOwned
+                )
                 .map(this::toItemResponse)
                 .toList();
 
@@ -398,7 +431,9 @@ public class ShoppingListService {
         Long ingredientId =
             shoppingItem.getIngredient() == null
                 ? null
-                : shoppingItem.getIngredient().getId();
+                : shoppingItem
+                    .getIngredient()
+                    .getId();
 
         return new ShoppingItemResponse(
             shoppingItem.getId(),

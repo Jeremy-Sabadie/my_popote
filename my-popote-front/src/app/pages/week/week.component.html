@@ -1,1 +1,186 @@
-<p>week works!</p>
+<section class="week-page">
+  <header class="week-header">
+    <div>
+      <p class="eyebrow">Mon planning</p>
+      <h1>Ma semaine</h1>
+    </div>
+
+    <p *ngIf="week" class="week-cost">
+      Coût estimé :
+      <strong>
+        {{ week.estimatedCost ?? 0 | number: '1.2-2' }} €
+      </strong>
+    </p>
+  </header>
+
+  <div *ngIf="loading" class="state-card">
+    Chargement du planning…
+  </div>
+
+  <div *ngIf="!loading && errorMessage" class="state-card state-card-error">
+    {{ errorMessage }}
+  </div>
+
+  <div *ngIf="!loading && !errorMessage && !week" class="state-card empty-state">
+    <h2>Aucun planning cette semaine</h2>
+
+    <p>
+      Aucun menu n'a encore été généré pour cette semaine.
+    </p>
+
+    <button type="button" class="primary-button" [disabled]="generating" (click)="generateWeek()">
+      {{ generating ? 'Génération…' : 'Générer ma semaine' }}
+    </button>
+
+    <p *ngIf="generationErrorMessage" class="error-message">
+      {{ generationErrorMessage }}
+    </p>
+  </div>
+
+  <div *ngIf="!loading && week" class="current-week">
+    <div class="week-toolbar">
+      <p>
+        Semaine du
+        <strong>
+          {{ weekLabel(week.weekStartDate) }}
+        </strong>
+      </p>
+
+      <button *ngIf="!viewingCurrentWeek" type="button" class="secondary-button" (click)="viewCurrentWeek()">
+        Revenir à cette semaine
+      </button>
+    </div>
+
+    <p *ngIf="replacementErrorMessage" class="error-message">
+      {{ replacementErrorMessage }}
+    </p>
+
+    <div class="days">
+      <article *ngFor="let day of days" class="day-card">
+        <h2>{{ day.label }}</h2>
+
+        <div class="meals">
+          <div *ngFor="let meal of day.meals" class="meal-card">
+            <span class="meal-type">
+              {{ mealTypeLabel(meal.mealType) }}
+            </span>
+
+            <strong class="meal-name">
+              {{ meal.recipeName }}
+            </strong>
+
+            <button *ngIf="
+                viewingCurrentWeek &&
+                replacingMealId !== meal.id
+              " type="button" class="replace-button" (click)="startReplacement(meal)">
+              Remplacer
+            </button>
+
+            <div *ngIf="
+                viewingCurrentWeek &&
+                replacingMealId === meal.id
+              " class="replacement-panel">
+              <label [for]="'recipe-' + meal.id">
+                Nouvelle recette
+              </label>
+
+              <select [id]="'recipe-' + meal.id" [(ngModel)]="
+                  selectedRecipeByMeal[meal.id]
+                ">
+                <option [ngValue]="null">
+                  Choisir une recette
+                </option>
+
+                <option *ngFor="let recipe of recipes" [ngValue]="recipe.id" [disabled]="
+                    recipe.id === meal.recipeId
+                  ">
+                  {{ recipe.name }}
+                </option>
+              </select>
+
+              <div class="replacement-actions">
+                <button type="button" class="primary-button" [disabled]="
+                    !selectedRecipeByMeal[meal.id]
+                  " (click)="
+                    replaceMeal(
+                      meal,
+                      selectedRecipeByMeal[meal.id]!
+                    )
+                  ">
+                  Valider
+                </button>
+
+                <button type="button" class="secondary-button" (click)="cancelReplacement()">
+                  Annuler
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <div *ngIf="viewingCurrentWeek" class="week-validation">
+      <div class="week-actions">
+        <button type="button" class="secondary-button proposal-button" [disabled]="generating || validatingWeek"
+          (click)="generateWeek()">
+          {{
+          generating
+          ? 'Nouvelle proposition…'
+          : 'Faire une autre proposition'
+          }}
+        </button>
+
+        <button type="button" class="primary-button validate-button" [disabled]="validatingWeek || generating"
+          (click)="validateWeek()">
+          {{
+          validatingWeek
+          ? 'Préparation de la liste…'
+          : 'Valider ma semaine'
+          }}
+        </button>
+      </div>
+
+      <p *ngIf="generationErrorMessage" class="error-message">
+        {{ generationErrorMessage }}
+      </p>
+
+      <p *ngIf="validationErrorMessage" class="error-message">
+        {{ validationErrorMessage }}
+      </p>
+    </div>
+  </div>
+
+  <section class="history-section">
+    <h2>Semaines passées</h2>
+
+    <p *ngIf="historyLoading">
+      Chargement de l'historique…
+    </p>
+
+    <p *ngIf="
+        !historyLoading &&
+        history.length === 0
+      " class="history-empty">
+      Aucune semaine précédente pour le moment.
+    </p>
+
+    <div *ngIf="
+        !historyLoading &&
+        history.length > 0
+      " class="history-list">
+      <button *ngFor="let historicalWeek of history" type="button" class="history-card"
+        (click)="viewHistoryWeek(historicalWeek)">
+        <span>Semaine du</span>
+
+        <strong>
+          {{ weekLabel(historicalWeek.weekStartDate) }}
+        </strong>
+
+        <span>
+          {{ historicalWeek.estimatedCost ?? 0 | number: '1.2-2' }} €
+        </span>
+      </button>
+    </div>
+  </section>
+</section>

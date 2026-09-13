@@ -5,7 +5,6 @@ import fr.mypopote.my_popote_api.planning.dto.MealPlanResponse;
 import fr.mypopote.my_popote_api.recipe.Recipe;
 import fr.mypopote.my_popote_api.recipe.RecipeRepository;
 import fr.mypopote.my_popote_api.user.User;
-import fr.mypopote.my_popote_api.user.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -34,15 +33,13 @@ class MealPlanServiceTest {
     @Mock
     private RecipeRepository recipeRepository;
 
-    @Mock
-    private UserRepository userRepository;
-
     @InjectMocks
     private MealPlanService mealPlanService;
 
     @Test
     void shouldGenerateTenMealsWithoutWeekend() {
         Long userId = 1L;
+
         LocalDate monday =
             LocalDate.of(2026, 9, 7);
 
@@ -75,25 +72,29 @@ class MealPlanServiceTest {
                 monday,
                 false,
                 new BigDecimal("60.00"),
-                List.of(10L, 20L)
+                List.of(
+                    10L,
+                    20L
+                )
             );
-
-        when(userRepository.findById(userId))
-            .thenReturn(Optional.of(user));
 
         when(
             recipeRepository.findByIdAndUserId(
                 10L,
                 userId
             )
-        ).thenReturn(Optional.of(firstRecipe));
+        ).thenReturn(
+            Optional.of(firstRecipe)
+        );
 
         when(
             recipeRepository.findByIdAndUserId(
                 20L,
                 userId
             )
-        ).thenReturn(Optional.of(secondRecipe));
+        ).thenReturn(
+            Optional.of(secondRecipe)
+        );
 
         when(
             mealPlanRepository
@@ -101,14 +102,17 @@ class MealPlanServiceTest {
                     userId,
                     monday
                 )
-        ).thenReturn(Optional.empty());
+        ).thenReturn(
+            Optional.empty()
+        );
 
         when(
             mealPlanRepository.save(
                 any(MealPlan.class)
             )
         ).thenAnswer(
-            invocation -> invocation.getArgument(0)
+            invocation ->
+                invocation.getArgument(0)
         );
 
         when(
@@ -116,7 +120,8 @@ class MealPlanServiceTest {
                 anyList()
             )
         ).thenAnswer(
-            invocation -> invocation.getArgument(0)
+            invocation ->
+                invocation.getArgument(0)
         );
 
         MealPlanResponse result =
@@ -125,28 +130,53 @@ class MealPlanServiceTest {
                 request
             );
 
-        assertThat(result.meals())
-            .hasSize(10);
+        assertThat(
+            result.meals()
+        ).hasSize(10);
 
-        assertThat(result.meals().get(0).mealDate())
-            .isEqualTo(monday);
+        assertThat(
+            result.meals()
+                .get(0)
+                .mealDate()
+        ).isEqualTo(
+            monday
+        );
 
-        assertThat(result.meals().get(0).mealType())
-            .isEqualTo("LUNCH");
+        assertThat(
+            result.meals()
+                .get(0)
+                .mealType()
+        ).isEqualTo(
+            "LUNCH"
+        );
 
-        assertThat(result.meals().get(1).mealType())
-            .isEqualTo("DINNER");
+        assertThat(
+            result.meals()
+                .get(1)
+                .mealType()
+        ).isEqualTo(
+            "DINNER"
+        );
 
-        assertThat(result.meals().get(9).mealDate())
-            .isEqualTo(monday.plusDays(4));
+        assertThat(
+            result.meals()
+                .get(9)
+                .mealDate()
+        ).isEqualTo(
+            monday.plusDays(4)
+        );
 
-        assertThat(result.estimatedCost())
-            .isEqualByComparingTo("40.00");
+        assertThat(
+            result.estimatedCost()
+        ).isEqualByComparingTo(
+            "40.00"
+        );
     }
 
     @Test
     void shouldGenerateFourteenMealsWithWeekend() {
         Long userId = 1L;
+
         LocalDate monday =
             LocalDate.of(2026, 9, 7);
 
@@ -173,15 +203,14 @@ class MealPlanServiceTest {
                 List.of(10L)
             );
 
-        when(userRepository.findById(userId))
-            .thenReturn(Optional.of(user));
-
         when(
             recipeRepository.findByIdAndUserId(
                 10L,
                 userId
             )
-        ).thenReturn(Optional.of(recipe));
+        ).thenReturn(
+            Optional.of(recipe)
+        );
 
         when(
             mealPlanRepository
@@ -189,14 +218,17 @@ class MealPlanServiceTest {
                     userId,
                     monday
                 )
-        ).thenReturn(Optional.empty());
+        ).thenReturn(
+            Optional.empty()
+        );
 
         when(
             mealPlanRepository.save(
                 any(MealPlan.class)
             )
         ).thenAnswer(
-            invocation -> invocation.getArgument(0)
+            invocation ->
+                invocation.getArgument(0)
         );
 
         when(
@@ -204,7 +236,8 @@ class MealPlanServiceTest {
                 anyList()
             )
         ).thenAnswer(
-            invocation -> invocation.getArgument(0)
+            invocation ->
+                invocation.getArgument(0)
         );
 
         MealPlanResponse result =
@@ -213,11 +246,14 @@ class MealPlanServiceTest {
                 request
             );
 
-        assertThat(result.meals())
-            .hasSize(14);
+        assertThat(
+            result.meals()
+        ).hasSize(14);
 
         assertThat(
-            result.meals().get(13).mealDate()
+            result.meals()
+                .get(13)
+                .mealDate()
         ).isEqualTo(
             monday.plusDays(6)
         );

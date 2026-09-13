@@ -5,8 +5,7 @@ import fr.mypopote.my_popote_api.planning.dto.MealPlanResponse;
 import fr.mypopote.my_popote_api.planning.dto.PlannedMealResponse;
 import fr.mypopote.my_popote_api.recipe.Recipe;
 import fr.mypopote.my_popote_api.recipe.RecipeRepository;
-import fr.mypopote.my_popote_api.user.User;
-import fr.mypopote.my_popote_api.user.UserRepository;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,10 +17,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Service chargé de la planification hebdomadaire.
- *
- * L'utilisateur choisit les recettes.
- * My Popote les répartit ensuite dans les créneaux de la semaine.
+ * Service métier chargé des plannings hebdomadaires.
  */
 @Service
 @Transactional(readOnly = true)
@@ -30,20 +26,20 @@ public class MealPlanService {
     private final MealPlanRepository mealPlanRepository;
     private final PlannedMealRepository plannedMealRepository;
     private final RecipeRepository recipeRepository;
-    private final UserRepository userRepository;
 
     public MealPlanService(
         MealPlanRepository mealPlanRepository,
         PlannedMealRepository plannedMealRepository,
-        RecipeRepository recipeRepository,
-        UserRepository userRepository
+        RecipeRepository recipeRepository
     ) {
         this.mealPlanRepository = mealPlanRepository;
         this.plannedMealRepository = plannedMealRepository;
         this.recipeRepository = recipeRepository;
-        this.userRepository = userRepository;
     }
 
+    /**
+     * Recherche un planning pour un utilisateur et une semaine.
+     */
     public Optional<MealPlan> findByUserAndWeek(
         Long userId,
         LocalDate weekStartDate
@@ -55,84 +51,128 @@ public class MealPlanService {
     }
 
     /**
-     * Génère ou régénère une semaine complète.
+     * Génère une proposition de planning.
+     *
+     * Si un planning existe déjà pour cette semaine,
+     * ses repas sont remplacés par une nouvelle proposition.
      */
     @Transactional
     public MealPlanResponse generate(
         Long userId,
         GenerateMealPlanRequest request
     ) {
-        validateMonday(request.weekStartDate());
-
-        User user = userRepository.findById(userId)
-            .orElseThrow(() ->
-                new IllegalArgumentException("User not found")
-            );
-
-        List<Recipe> recipes = findOwnedRecipes(
-            userId,
-            request.recipeIds()
+        validateMonday(
+            request.weekStartDate()
         );
 
-        MealPlan mealPlan = mealPlanRepository
-            .findByUserIdAndWeekStartDate(
+        List<Recipe> recipes =
+            loadRecipes(
                 userId,
-                request.weekStartDate()
-            )
-            .orElseGet(() ->
-                new MealPlan(
-                    user,
-                    request.weekStartDate(),
-                    request.includeWeekend(),
-                    request.maxBudget(),
-                    BigDecimal.ZERO
-                )
+                request.recipeIds()
             );
 
-        mealPlan.setIncludeWeekend(request.includeWeekend());
-        mealPlan.setMaxBudget(request.maxBudget());
+        if (recipes.isEmpty()) {
+            throw new IllegalArgumentException(
+                "At least one recipe is required"
+            );
+        }
+
+        MealPlan mealPlan =
+            mealPlanRepository
+                .findByUserIdAndWeekStartDate(
+                    userId,
+                    request.weekStartDate()
+                )
+                .orElseGet(() ->
+                    new MealPlan(
+                        recipes.get(0).getUser(),
+                        request.weekStartDate(),
+                        request.includeWeekend(),
+                        request.maxBudget(),
+                        BigDecimal.ZERO
+                    )
+                );
+
+        mealPlan.setIncludeWeekend(
+            request.includeWeekend()
+        );
+
+        mealPlan.setMaxBudget(
+            request.maxBudget()
+        );
 
         MealPlan savedPlan =
-            mealPlanRepository.save(mealPlan);
+            mealPlanRepository.save(
+                mealPlan
+            );
 
         /*
-         * Régénérer une semaine remplace les anciens créneaux.
+         * Supprime l'ancienne proposition.
          */
-        plannedMealRepository.deleteAllByMealPlanId(
-            savedPlan.getId()
-        );
+        plannedMealRepository
+            .deleteAllByMealPlanId(
+                savedPlan.getId()
+            );
 
-        List<PlannedMeal> generatedMeals =
-            generateMeals(savedPlan, recipes);
+        /*
+         * Force les DELETE avant les nouveaux INSERT.
+         *
+         * Sans ce flush, MariaDB peut encore voir
+         * les anciens créneaux et déclencher
+         * uk_planned_meal_slot.
+         */
+        plannedMealRepository.flush();
 
-        plannedMealRepository.saveAll(generatedMeals);
+        List<PlannedMeal> meals =
+            generateMeals(
+                savedPlan,
+                recipes
+            );
+
+        meals =
+            plannedMealRepository.saveAll(
+                meals
+            );
+
+        plannedMealRepository.flush();
 
         BigDecimal estimatedCost =
-            calculateEstimatedCost(generatedMeals);
+            calculateEstimatedCost(
+                meals
+            );
 
-        savedPlan.setEstimatedCost(estimatedCost);
-        mealPlanRepository.save(savedPlan);
+        savedPlan.setEstimatedCost(
+            estimatedCost
+        );
 
-        return toResponse(savedPlan, generatedMeals);
+        mealPlanRepository.save(
+            savedPlan
+        );
+
+        return toResponse(
+            savedPlan,
+            meals
+        );
     }
 
     /**
-     * Retourne une semaine avec tous ses repas.
+     * Retourne le planning d'une semaine.
      */
     public MealPlanResponse getWeek(
         Long userId,
         LocalDate weekStartDate
     ) {
-        MealPlan mealPlan = mealPlanRepository
-            .findByUserIdAndWeekStartDate(
-                userId,
-                weekStartDate
-            )
-            .orElseThrow(() ->
-                new IllegalArgumentException(
-                    "Meal plan not found"
+        MealPlan mealPlan =
+            mealPlanRepository
+                .findByUserIdAndWeekStartDate(
+                    userId,
+                    weekStartDate
                 )
-            );
+                .orElseThrow(() ->
+                    new IllegalArgumentException(
+                        "Meal plan not found"
+                    )
+                );
 
         List<PlannedMeal> meals =
             plannedMealRepository
@@ -140,15 +180,22 @@ public class MealPlanService {
                     mealPlan.getId()
                 );
 
-        return toResponse(mealPlan, meals);
+        return toResponse(
+            mealPlan,
+            meals
+        );
     }
 
     /**
-     * Retourne l'historique des semaines.
+     * Retourne l'historique des semaines générées.
      */
-    public List<MealPlanResponse> getHistory(Long userId) {
+    public List<MealPlanResponse> getHistory(
+        Long userId
+    ) {
         return mealPlanRepository
-            .findAllByUserIdOrderByWeekStartDateDesc(userId)
+            .findAllByUserIdOrderByWeekStartDateDesc(
+                userId
+            )
             .stream()
             .map(mealPlan -> {
                 List<PlannedMeal> meals =
@@ -157,45 +204,73 @@ public class MealPlanService {
                             mealPlan.getId()
                         );
 
-                return toResponse(mealPlan, meals);
+                return toResponse(
+                    mealPlan,
+                    meals
+                );
             })
             .toList();
     }
 
     /**
-     * Retourne les repas d'une date donnée.
-     * L'écran Aujourd'hui utilisera la date courante.
+     * Retourne les repas planifiés pour une date précise.
      */
     public List<PlannedMealResponse> getMealsForDate(
         Long userId,
-        LocalDate date
+        LocalDate mealDate
     ) {
         return plannedMealRepository
             .findAllByMealPlanUserIdAndMealDate(
                 userId,
-                date
+                mealDate
             )
             .stream()
             .map(this::toMealResponse)
             .toList();
     }
 
-    private List<Recipe> findOwnedRecipes(
+    /**
+     * Charge uniquement les recettes appartenant
+     * à l'utilisateur connecté.
+     */
+    private List<Recipe> loadRecipes(
         Long userId,
         List<Long> recipeIds
     ) {
-        List<Recipe> recipes = new ArrayList<>();
+        if (
+            recipeIds == null ||
+            recipeIds.isEmpty()
+        ) {
+            throw new IllegalArgumentException(
+                "At least one recipe is required"
+            );
+        }
 
-        for (Long recipeId : recipeIds) {
-            Recipe recipe = recipeRepository
-                .findByIdAndUserId(recipeId, userId)
-                .orElseThrow(() ->
-                    new IllegalArgumentException(
-                        "Recipe not found: " + recipeId
+        List<Recipe> recipes =
+            new ArrayList<>();
+
+        for (
+            Long recipeId :
+            recipeIds.stream()
+                .distinct()
+                .toList()
+        ) {
+            Recipe recipe =
+                recipeRepository
+                    .findByIdAndUserId(
+                        recipeId,
+                        userId
                     )
-                );
+                    .orElseThrow(() ->
+                        new IllegalArgumentException(
+                            "Recipe not found: "
+                                + recipeId
+                        )
+                    );
 
-            recipes.add(recipe);
+            recipes.add(
+                recipe
+            );
         }
 
         return recipes;
@@ -211,23 +286,37 @@ public class MealPlanService {
         MealPlan mealPlan,
         List<Recipe> recipes
     ) {
-        List<PlannedMeal> meals = new ArrayList<>();
+        List<PlannedMeal> meals =
+            new ArrayList<>();
 
         int numberOfDays =
-            mealPlan.isIncludeWeekend() ? 7 : 5;
+            mealPlan.isIncludeWeekend()
+                ? 7
+                : 5;
 
         int recipeIndex = 0;
 
-        for (int day = 0; day < numberOfDays; day++) {
+        for (
+            int day = 0;
+            day < numberOfDays;
+            day++
+        ) {
             LocalDate mealDate =
-                mealPlan.getWeekStartDate().plusDays(day);
+                mealPlan
+                    .getWeekStartDate()
+                    .plusDays(day);
 
-            for (String mealType :
-                List.of("LUNCH", "DINNER")) {
-
+            for (
+                String mealType :
+                List.of(
+                    "LUNCH",
+                    "DINNER"
+                )
+            ) {
                 Recipe recipe =
                     recipes.get(
-                        recipeIndex % recipes.size()
+                        recipeIndex
+                            % recipes.size()
                     );
 
                 meals.add(
@@ -253,9 +342,15 @@ public class MealPlanService {
         List<PlannedMeal> meals
     ) {
         return meals.stream()
-            .map(PlannedMeal::getRecipe)
-            .map(Recipe::getEstimatedCost)
-            .filter(cost -> cost != null)
+            .map(
+                PlannedMeal::getRecipe
+            )
+            .map(
+                Recipe::getEstimatedCost
+            )
+            .filter(
+                cost -> cost != null
+            )
             .reduce(
                 BigDecimal.ZERO,
                 BigDecimal::add
@@ -265,9 +360,16 @@ public class MealPlanService {
     private void validateMonday(
         LocalDate weekStartDate
     ) {
-        if (weekStartDate.getDayOfWeek()
-            != DayOfWeek.MONDAY) {
+        if (weekStartDate == null) {
+            throw new IllegalArgumentException(
+                "Week start date is required"
+            );
+        }
 
+        if (
+            weekStartDate.getDayOfWeek()
+                != DayOfWeek.MONDAY
+        ) {
             throw new IllegalArgumentException(
                 "Week start date must be a Monday"
             );
