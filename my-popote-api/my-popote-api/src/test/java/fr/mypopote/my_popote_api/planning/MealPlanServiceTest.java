@@ -52,23 +52,25 @@ class MealPlanServiceTest {
             "Jérémy"
         );
 
-        Recipe firstRecipe = new Recipe(
-            user,
-            "Poulet curry",
-            "MEAT",
-            2,
-            new BigDecimal("5.00"),
-            null
-        );
+        Recipe firstRecipe =
+            new Recipe(
+                user,
+                "Poulet curry",
+                "MEAT",
+                2,
+                new BigDecimal("5.00"),
+                null
+            );
 
-        Recipe secondRecipe = new Recipe(
-            user,
-            "Pâtes tomate",
-            "VEGETARIAN",
-            2,
-            new BigDecimal("3.00"),
-            null
-        );
+        Recipe secondRecipe =
+            new Recipe(
+                user,
+                "Pâtes tomate",
+                "VEGETARIAN",
+                2,
+                new BigDecimal("3.00"),
+                null
+            );
 
         GenerateMealPlanRequest request =
             new GenerateMealPlanRequest(
@@ -189,14 +191,15 @@ class MealPlanServiceTest {
             "Jérémy"
         );
 
-        Recipe recipe = new Recipe(
-            user,
-            "Poulet curry",
-            "MEAT",
-            2,
-            new BigDecimal("5.00"),
-            null
-        );
+        Recipe recipe =
+            new Recipe(
+                user,
+                "Poulet curry",
+                "MEAT",
+                2,
+                new BigDecimal("5.00"),
+                null
+            );
 
         GenerateMealPlanRequest request =
             new GenerateMealPlanRequest(
@@ -275,27 +278,33 @@ class MealPlanServiceTest {
             "Jérémy"
         );
 
-        Recipe summerRecipe = new Recipe(
-            user,
-            "Salade de poulet",
-            "MEAT",
-            2,
-            new BigDecimal("5.00"),
-            null
+        Recipe summerRecipe =
+            new Recipe(
+                user,
+                "Salade de poulet",
+                "MEAT",
+                2,
+                new BigDecimal("5.00"),
+                null
+            );
+
+        summerRecipe.addSeason(
+            "SUMMER"
         );
 
-        summerRecipe.addSeason("SUMMER");
+        Recipe winterRecipe =
+            new Recipe(
+                user,
+                "Tartiflette",
+                "MEAT",
+                2,
+                new BigDecimal("7.00"),
+                null
+            );
 
-        Recipe winterRecipe = new Recipe(
-            user,
-            "Tartiflette",
-            "MEAT",
-            2,
-            new BigDecimal("7.00"),
-            null
+        winterRecipe.addSeason(
+            "WINTER"
         );
-
-        winterRecipe.addSeason("WINTER");
 
         GenerateMealPlanRequest request =
             new GenerateMealPlanRequest(
@@ -360,18 +369,20 @@ class MealPlanServiceTest {
                 request
             );
 
-        assertThat(result.meals())
-            .hasSize(10);
+        assertThat(
+            result.meals()
+        ).hasSize(10);
 
-        assertThat(result.meals())
-            .allSatisfy(
-                meal ->
-                    assertThat(
-                        meal.recipeName()
-                    ).isEqualTo(
-                        "Salade de poulet"
-                    )
-            );
+        assertThat(
+            result.meals()
+        ).allSatisfy(
+            meal ->
+                assertThat(
+                    meal.recipeName()
+                ).isEqualTo(
+                    "Salade de poulet"
+                )
+        );
     }
 
     @Test
@@ -511,6 +522,188 @@ class MealPlanServiceTest {
                 ).isEqualTo(
                     "Poulet protéiné"
                 )
+        );
+    }
+
+    @Test
+    void shouldRespectBudgetWhileKeepingPreferredRecipesWhenPossible() {
+        Long userId = 1L;
+
+        LocalDate monday =
+            LocalDate.of(2026, 7, 6);
+
+        User user = new User(
+            "jeremy@example.com",
+            "hashed-password",
+            "Jérémy"
+        );
+
+        /*
+         * Cette recette correspond à la préférence choisie,
+         * mais elle ne peut pas remplir seule toute la semaine
+         * sans dépasser le budget.
+         */
+        Recipe preferredRecipe =
+            new Recipe(
+                user,
+                "Poulet protéiné",
+                "MEAT",
+                2,
+                new BigDecimal("5.00"),
+                null
+            );
+
+        preferredRecipe.addSeason(
+            "SUMMER"
+        );
+
+        Tag preferredTag =
+            mock(Tag.class);
+
+        when(
+            preferredTag.getId()
+        ).thenReturn(
+            100L
+        );
+
+        preferredRecipe.addTag(
+            preferredTag
+        );
+
+        /*
+         * Cette recette moins chère permet de compléter
+         * la semaine lorsque le budget ne permet pas
+         * d'utiliser uniquement la recette préférée.
+         */
+        Recipe budgetRecipe =
+            new Recipe(
+                user,
+                "Pâtes tomate",
+                "VEGETARIAN",
+                2,
+                new BigDecimal("3.00"),
+                null
+            );
+
+        budgetRecipe.addSeason(
+            "SUMMER"
+        );
+
+        GenerateMealPlanRequest request =
+            new GenerateMealPlanRequest(
+                monday,
+                false,
+                new BigDecimal("40.00"),
+                List.of(
+                    10L,
+                    20L
+                ),
+                List.of(
+                    100L
+                )
+            );
+
+        when(
+            recipeRepository.findByIdAndUserId(
+                10L,
+                userId
+            )
+        ).thenReturn(
+            Optional.of(
+                preferredRecipe
+            )
+        );
+
+        when(
+            recipeRepository.findByIdAndUserId(
+                20L,
+                userId
+            )
+        ).thenReturn(
+            Optional.of(
+                budgetRecipe
+            )
+        );
+
+        when(
+            mealPlanRepository
+                .findByUserIdAndWeekStartDate(
+                    userId,
+                    monday
+                )
+        ).thenReturn(
+            Optional.empty()
+        );
+
+        when(
+            mealPlanRepository.save(
+                any(MealPlan.class)
+            )
+        ).thenAnswer(
+            invocation ->
+                invocation.getArgument(0)
+        );
+
+        when(
+            plannedMealRepository.saveAll(
+                anyList()
+            )
+        ).thenAnswer(
+            invocation ->
+                invocation.getArgument(0)
+        );
+
+        MealPlanResponse result =
+            mealPlanService.generate(
+                userId,
+                request
+            );
+
+        /*
+         * Le budget devient une vraie contrainte
+         * de la proposition générée.
+         */
+        assertThat(
+            result.estimatedCost()
+        ).isLessThanOrEqualTo(
+            new BigDecimal("40.00")
+        );
+
+        /*
+         * Les préférences restent prioritaires :
+         * on conserve autant que possible
+         * des recettes correspondant aux tags choisis.
+         */
+        assertThat(
+            result.meals()
+                .stream()
+                .filter(meal ->
+                    meal.recipeName()
+                        .equals(
+                            "Poulet protéiné"
+                        )
+                )
+                .count()
+        ).isGreaterThan(
+            0
+        );
+
+        /*
+         * L'alternative économique doit pouvoir être utilisée
+         * pour éviter le dépassement du budget.
+         */
+        assertThat(
+            result.meals()
+                .stream()
+                .filter(meal ->
+                    meal.recipeName()
+                        .equals(
+                            "Pâtes tomate"
+                        )
+                )
+                .count()
+        ).isGreaterThan(
+            0
         );
     }
 }

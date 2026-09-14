@@ -15,11 +15,16 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.Month;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
 /**
  * Service métier chargé des plannings hebdomadaires.
+ *
+ * La génération respecte la saison et les tags choisis.
+ * Le budget intervient uniquement si la proposition obtenue
+ * avec ces préférences dépasse le plafond demandé.
  */
 @Service
 @Transactional(readOnly = true)
@@ -278,36 +283,89 @@ public class MealPlanService {
     }
 
     /**
-     * Répartit les recettes en rotation.
+     * Génère les repas de la semaine.
      *
-     * La saison est prise en compte en premier.
+     * On commence volontairement par construire exactement
+     * la proposition historique basée sur saison + tags.
      *
-     * Les tags choisis par l'utilisateur servent ensuite
-     * à privilégier les recettes qui correspondent
-     * le mieux à ses préférences de la semaine.
-     *
-     * Sans week-end : 5 jours x 2 repas = 10.
-     * Avec week-end : 7 jours x 2 repas = 14.
+     * Le budget n'intervient que si cette proposition
+     * dépasse réellement le plafond demandé.
      */
     private List<PlannedMeal> generateMeals(
         MealPlan mealPlan,
         List<Recipe> recipes,
         List<Long> preferredTagIds
     ) {
-        List<PlannedMeal> meals =
-            new ArrayList<>();
-
         List<Recipe> seasonalRecipes =
             selectRecipesForSeason(
                 recipes,
                 mealPlan.getWeekStartDate()
             );
 
-        List<Recipe> eligibleRecipes =
+        List<Recipe> preferredRecipes =
             selectRecipesForPreferredTags(
                 seasonalRecipes,
                 preferredTagIds
             );
+
+        List<PlannedMeal> preferredMeals =
+            buildMeals(
+                mealPlan,
+                preferredRecipes
+            );
+
+        /*
+         * Aucun budget :
+         * le comportement historique est conservé.
+         */
+        if (mealPlan.getMaxBudget() == null) {
+            return preferredMeals;
+        }
+
+        BigDecimal preferredCost =
+            calculateEstimatedCost(
+                preferredMeals
+            );
+
+        /*
+         * La proposition préférée respecte déjà le budget.
+         * Il n'y a aucune raison de dégrader les préférences.
+         */
+        if (
+            preferredCost.compareTo(
+                mealPlan.getMaxBudget()
+            ) <= 0
+        ) {
+            return preferredMeals;
+        }
+
+        /*
+         * Le budget est dépassé.
+         *
+         * On repart de toutes les recettes compatibles
+         * avec la saison pour permettre des alternatives
+         * moins coûteuses.
+         */
+        return buildBudgetAwareMeals(
+            mealPlan,
+            seasonalRecipes,
+            preferredTagIds
+        );
+    }
+
+    /**
+     * Construit une semaine en rotation classique.
+     *
+     * Cette méthode conserve le comportement initial
+     * de My Popote lorsque le budget n'a pas besoin
+     * d'intervenir.
+     */
+    private List<PlannedMeal> buildMeals(
+        MealPlan mealPlan,
+        List<Recipe> recipes
+    ) {
+        List<PlannedMeal> meals =
+            new ArrayList<>();
 
         int numberOfDays =
             mealPlan.isIncludeWeekend()
@@ -334,9 +392,9 @@ public class MealPlanService {
                 )
             ) {
                 Recipe recipe =
-                    eligibleRecipes.get(
+                    recipes.get(
                         recipeIndex
-                            % eligibleRecipes.size()
+                            % recipes.size()
                     );
 
                 meals.add(
@@ -353,6 +411,194 @@ public class MealPlanService {
         }
 
         return meals;
+    }
+
+    /**
+     * Construit une semaine lorsque la proposition préférée
+     * dépasse le budget.
+     *
+     * Les recettes restent classées par score de tags.
+     * Pour chaque repas, on prend la recette la mieux classée
+     * qui laisse encore assez de budget pour terminer
+     * la semaine avec la recette la moins chère.
+     *
+     * Si même la semaine la moins chère dépasse le budget,
+     * la recette la moins chère limite le dépassement.
+     */
+    private List<PlannedMeal> buildBudgetAwareMeals(
+        MealPlan mealPlan,
+        List<Recipe> recipes,
+        List<Long> preferredTagIds
+    ) {
+        List<PlannedMeal> meals =
+            new ArrayList<>();
+
+        List<Recipe> orderedRecipes =
+            orderRecipesByPreference(
+                recipes,
+                preferredTagIds
+            );
+
+        int numberOfDays =
+            mealPlan.isIncludeWeekend()
+                ? 7
+                : 5;
+
+        int totalMeals =
+            numberOfDays * 2;
+
+        BigDecimal currentCost =
+            BigDecimal.ZERO;
+
+        for (
+            int day = 0;
+            day < numberOfDays;
+            day++
+        ) {
+            LocalDate mealDate =
+                mealPlan
+                    .getWeekStartDate()
+                    .plusDays(day);
+
+            for (
+                String mealType :
+                List.of(
+                    "LUNCH",
+                    "DINNER"
+                )
+            ) {
+                int remainingMeals =
+                    totalMeals
+                        - meals.size()
+                        - 1;
+
+                Recipe recipe =
+                    selectRecipeWithinBudget(
+                        orderedRecipes,
+                        mealPlan.getMaxBudget(),
+                        currentCost,
+                        remainingMeals
+                    );
+
+                meals.add(
+                    new PlannedMeal(
+                        mealPlan,
+                        recipe,
+                        mealDate,
+                        mealType
+                    )
+                );
+
+                currentCost =
+                    currentCost.add(
+                        getRecipeCost(
+                            recipe
+                        )
+                    );
+            }
+        }
+
+        return meals;
+    }
+
+    /**
+     * Classe les recettes du meilleur score de tags
+     * vers le moins bon.
+     *
+     * Le tri Java étant stable, deux recettes ayant
+     * le même score conservent leur ordre d'origine.
+     */
+    private List<Recipe> orderRecipesByPreference(
+        List<Recipe> recipes,
+        List<Long> preferredTagIds
+    ) {
+        if (
+            preferredTagIds == null ||
+            preferredTagIds.isEmpty()
+        ) {
+            return recipes;
+        }
+
+        return recipes.stream()
+            .sorted(
+                Comparator.comparingInt(
+                    (Recipe recipe) ->
+                        calculatePreferredTagScore(
+                            recipe,
+                            preferredTagIds
+                        )
+                ).reversed()
+            )
+            .toList();
+    }
+
+    /**
+     * Choisit la meilleure recette encore compatible
+     * avec le budget disponible.
+     */
+    private Recipe selectRecipeWithinBudget(
+        List<Recipe> orderedRecipes,
+        BigDecimal maxBudget,
+        BigDecimal currentCost,
+        int remainingMeals
+    ) {
+        BigDecimal cheapestCost =
+            orderedRecipes.stream()
+                .map(this::getRecipeCost)
+                .min(BigDecimal::compareTo)
+                .orElse(BigDecimal.ZERO);
+
+        for (Recipe recipe : orderedRecipes) {
+            BigDecimal projectedCost =
+                currentCost
+                    .add(
+                        getRecipeCost(
+                            recipe
+                        )
+                    )
+                    .add(
+                        cheapestCost.multiply(
+                            BigDecimal.valueOf(
+                                remainingMeals
+                            )
+                        )
+                    );
+
+            if (
+                projectedCost.compareTo(
+                    maxBudget
+                ) <= 0
+            ) {
+                return recipe;
+            }
+        }
+
+        /*
+         * Même la solution minimale dépasse le budget.
+         * On limite donc le dépassement.
+         */
+        return orderedRecipes.stream()
+            .min(
+                Comparator.comparing(
+                    this::getRecipeCost
+                )
+            )
+            .orElseThrow();
+    }
+
+    /**
+     * Retourne le coût utilisé par l'algorithme.
+     *
+     * On reste cohérent avec le calcul historique :
+     * une recette sans estimation ne contribue pas
+     * au coût calculé.
+     */
+    private BigDecimal getRecipeCost(
+        Recipe recipe
+    ) {
+        return recipe.getEstimatedCost() == null
+            ? BigDecimal.ZERO
+            : recipe.getEstimatedCost();
     }
 
     /**
@@ -402,17 +648,12 @@ public class MealPlanService {
      *
      * Chaque tag correspondant vaut un point.
      *
-     * Exemple :
-     * - Sèche + Protéiné = score 2
-     * - Protéiné uniquement = score 1
-     * - Aucun des deux = score 0
-     *
      * Seules les recettes ayant le meilleur score
-     * sont utilisées.
+     * sont utilisées dans la proposition normale.
      *
-     * Si aucun tag n'est choisi ou si aucune recette
-     * ne correspond aux préférences, la sélection
-     * saisonnière est conservée telle quelle.
+     * Les recettes moins bien classées restent cependant
+     * disponibles comme alternatives lorsque le budget
+     * ne permet pas de conserver cette proposition.
      */
     private List<Recipe> selectRecipesForPreferredTags(
         List<Recipe> recipes,
@@ -436,10 +677,6 @@ public class MealPlanService {
                 .max()
                 .orElse(0);
 
-        /*
-         * Aucun tag préféré n'est présent
-         * dans les recettes disponibles.
-         */
         if (maxScore == 0) {
             return recipes;
         }
@@ -476,9 +713,6 @@ public class MealPlanService {
 
     /**
      * Détermine la saison utilisée pour la génération.
-     *
-     * La première version repose volontairement sur
-     * les saisons météorologiques par mois complet.
      */
     private String getSeason(
         LocalDate date
@@ -531,6 +765,9 @@ public class MealPlanService {
             );
     }
 
+    /**
+     * Vérifie que la semaine commence bien un lundi.
+     */
     private void validateMonday(
         LocalDate weekStartDate
     ) {
