@@ -7,19 +7,20 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
+import {
+  ActivatedRoute,
+  Router,
+} from '@angular/router';
 import { forkJoin } from 'rxjs';
 import Swal from 'sweetalert2';
 
 import { RecipeService } from '../../core/services/recipe.service';
-import { Recipe, RecipeRequest, RecipeTag } from '../../models/recipe.model';
+import {
+  Recipe,
+  RecipeRequest,
+  RecipeTag,
+} from '../../models/recipe.model';
 
-/**
- * Page de consultation et de gestion de la bibliothèque de recettes.
- *
- * Les détails et le formulaire sont affichés dans une modale afin
- * d'éviter les déplacements dans la page et de garder les actions
- * importantes facilement accessibles.
- */
 @Component({
   selector: 'app-recipes',
   standalone: true,
@@ -44,6 +45,8 @@ export class RecipesComponent implements OnInit {
   errorMessage = '';
   formErrorMessage = '';
 
+  private openedFromWeek = false;
+
   readonly seasons = [
     { value: 'SPRING', label: 'Printemps' },
     { value: 'SUMMER', label: 'Été' },
@@ -57,15 +60,44 @@ export class RecipesComponent implements OnInit {
   constructor(
     private readonly recipeService: RecipeService,
     private readonly formBuilder: FormBuilder,
+    private readonly route: ActivatedRoute,
+    private readonly router: Router,
   ) {
     this.recipeForm = this.formBuilder.nonNullable.group({
-      name: ['', [Validators.required, Validators.maxLength(150)]],
-      servings: [2, [Validators.required, Validators.min(1)]],
-      estimatedCost: [null as number | null, Validators.min(0)],
-      instructions: ['', Validators.maxLength(10000)],
-      seasons: this.formBuilder.nonNullable.control<string[]>(['ALL_YEAR']),
-      tagIds: this.formBuilder.nonNullable.control<number[]>([]),
-      ingredients: this.formBuilder.array([this.createIngredientForm()]),
+      name: [
+        '',
+        [
+          Validators.required,
+          Validators.maxLength(150),
+        ],
+      ],
+      servings: [
+        2,
+        [
+          Validators.required,
+          Validators.min(1),
+        ],
+      ],
+      estimatedCost: [
+        null as number | null,
+        Validators.min(0),
+      ],
+      instructions: [
+        '',
+        Validators.maxLength(10000),
+      ],
+      seasons:
+        this.formBuilder.nonNullable.control<string[]>(
+          ['ALL_YEAR'],
+        ),
+      tagIds:
+        this.formBuilder.nonNullable.control<number[]>(
+          [],
+        ),
+      ingredients:
+        this.formBuilder.array([
+          this.createIngredientForm(),
+        ]),
     });
   }
 
@@ -77,11 +109,11 @@ export class RecipesComponent implements OnInit {
     return this.recipeForm.controls.ingredients;
   }
 
-  /**
-   * La modale est ouverte lorsqu'on consulte ou édite une recette.
-   */
   get modalOpen(): boolean {
-    return this.showRecipeForm || this.selectedRecipe !== null;
+    return (
+      this.showRecipeForm ||
+      this.selectedRecipe !== null
+    );
   }
 
   private loadPage(): void {
@@ -96,6 +128,8 @@ export class RecipesComponent implements OnInit {
         this.recipes = recipes;
         this.tags = tags;
         this.loading = false;
+
+        this.openRecipeFromQueryParams();
       },
 
       error: () => {
@@ -107,17 +141,68 @@ export class RecipesComponent implements OnInit {
     });
   }
 
-  private createIngredientForm(ingredientName = '', quantity = 1, unit = 'g') {
+  /**
+   * Ouvre automatiquement une recette lorsqu'un recipeId
+   * est fourni depuis le planning.
+   */
+  private openRecipeFromQueryParams(): void {
+    const recipeIdParam =
+      this.route.snapshot.queryParamMap.get(
+        'recipeId',
+      );
+
+    if (!recipeIdParam) {
+      return;
+    }
+
+    const recipeId = Number(recipeIdParam);
+
+    if (!Number.isInteger(recipeId)) {
+      return;
+    }
+
+    const recipe =
+      this.recipes.find(
+        (currentRecipe) =>
+          currentRecipe.id === recipeId,
+      );
+
+    if (!recipe) {
+      return;
+    }
+
+    this.openedFromWeek =
+      this.route.snapshot.queryParamMap.get(
+        'from',
+      ) === 'week';
+
+    this.viewRecipe(recipe);
+  }
+
+  private createIngredientForm(
+    ingredientName = '',
+    quantity = 1,
+    unit = 'g',
+  ) {
     return this.formBuilder.nonNullable.group({
-      ingredientName: [ingredientName, Validators.required],
-      quantity: [quantity, [Validators.required, Validators.min(0.01)]],
-      unit: [unit, Validators.required],
+      ingredientName: [
+        ingredientName,
+        Validators.required,
+      ],
+      quantity: [
+        quantity,
+        [
+          Validators.required,
+          Validators.min(0.01),
+        ],
+      ],
+      unit: [
+        unit,
+        Validators.required,
+      ],
     });
   }
 
-  /**
-   * Ouvre directement la modale en mode création.
-   */
   openRecipeForm(): void {
     this.selectedRecipe = null;
     this.editingRecipe = null;
@@ -128,11 +213,11 @@ export class RecipesComponent implements OnInit {
     this.showRecipeForm = true;
   }
 
-  /**
-   * Ferme complètement la modale.
-   */
   closeModal(): void {
-    if (this.saving || this.downloadingRecipe) {
+    if (
+      this.saving ||
+      this.downloadingRecipe
+    ) {
       return;
     }
 
@@ -141,20 +226,20 @@ export class RecipesComponent implements OnInit {
     this.editingRecipe = null;
 
     this.resetRecipeForm();
+
+    if (this.openedFromWeek) {
+      this.openedFromWeek = false;
+
+      void this.router.navigate(['/week']);
+    }
   }
 
-  /**
-   * Affiche une recette sans déplacer la page.
-   */
   viewRecipe(recipe: Recipe): void {
     this.selectedRecipe = recipe;
     this.editingRecipe = null;
     this.showRecipeForm = false;
   }
 
-  /**
-   * Passe directement du détail au formulaire de modification.
-   */
   editRecipe(recipe: Recipe): void {
     this.selectedRecipe = recipe;
     this.editingRecipe = recipe;
@@ -181,22 +266,24 @@ export class RecipesComponent implements OnInit {
     });
 
     if (this.ingredients.length === 0) {
-      this.ingredients.push(this.createIngredientForm());
+      this.ingredients.push(
+        this.createIngredientForm(),
+      );
     }
 
     this.formErrorMessage = '';
     this.showRecipeForm = true;
   }
 
-  /**
-   * Annule une modification et revient simplement au détail.
-   */
   cancelForm(): void {
     if (this.saving) {
       return;
     }
 
-    if (this.editingRecipe && this.selectedRecipe) {
+    if (
+      this.editingRecipe &&
+      this.selectedRecipe
+    ) {
       this.showRecipeForm = false;
       this.editingRecipe = null;
       this.formErrorMessage = '';
@@ -208,7 +295,9 @@ export class RecipesComponent implements OnInit {
   }
 
   addIngredient(): void {
-    this.ingredients.push(this.createIngredientForm());
+    this.ingredients.push(
+      this.createIngredientForm(),
+    );
   }
 
   removeIngredient(index: number): void {
@@ -219,11 +308,10 @@ export class RecipesComponent implements OnInit {
     this.ingredients.removeAt(index);
   }
 
-  /**
-   * Gère la saisonnalité sans permettre un état invalide.
-   */
   toggleSeason(season: string): void {
-    const control = this.recipeForm.controls.seasons;
+    const control =
+      this.recipeForm.controls.seasons;
+
     const current = [...control.value];
 
     if (season === 'ALL_YEAR') {
@@ -231,46 +319,81 @@ export class RecipesComponent implements OnInit {
       return;
     }
 
-    const withoutAllYear = current.filter((value) => value !== 'ALL_YEAR');
+    const withoutAllYear =
+      current.filter(
+        (value) =>
+          value !== 'ALL_YEAR',
+      );
 
-    if (withoutAllYear.includes(season)) {
-      const remaining = withoutAllYear.filter((value) => value !== season);
+    if (
+      withoutAllYear.includes(season)
+    ) {
+      const remaining =
+        withoutAllYear.filter(
+          (value) =>
+            value !== season,
+        );
 
-      control.setValue(remaining.length > 0 ? remaining : ['ALL_YEAR']);
-
-      return;
-    }
-
-    control.setValue([...withoutAllYear, season]);
-  }
-
-  isSeasonSelected(season: string): boolean {
-    return this.recipeForm.controls.seasons.value.includes(season);
-  }
-
-  toggleRecipeTag(tagId: number): void {
-    const control = this.recipeForm.controls.tagIds;
-    const selectedTags = [...control.value];
-
-    if (selectedTags.includes(tagId)) {
       control.setValue(
-        selectedTags.filter((selectedTagId) => selectedTagId !== tagId),
+        remaining.length > 0
+          ? remaining
+          : ['ALL_YEAR'],
       );
 
       return;
     }
 
-    control.setValue([...selectedTags, tagId]);
+    control.setValue([
+      ...withoutAllYear,
+      season,
+    ]);
   }
 
-  isRecipeTagSelected(tagId: number): boolean {
-    return this.recipeForm.controls.tagIds.value.includes(tagId);
+  isSeasonSelected(
+    season: string,
+  ): boolean {
+    return (
+      this.recipeForm.controls.seasons.value
+        .includes(season)
+    );
   }
 
-  /**
-   * Valide le formulaire puis demande confirmation avant
-   * d'enregistrer la modification d'une recette existante.
-   */
+  toggleRecipeTag(tagId: number): void {
+    const control =
+      this.recipeForm.controls.tagIds;
+
+    const selectedTags = [
+      ...control.value,
+    ];
+
+    if (
+      selectedTags.includes(tagId)
+    ) {
+      control.setValue(
+        selectedTags.filter(
+          (selectedTagId) =>
+            selectedTagId !== tagId,
+        ),
+      );
+
+      return;
+    }
+
+    control.setValue([
+      ...selectedTags,
+      tagId,
+    ]);
+  }
+
+  isRecipeTagSelected(
+    tagId: number,
+  ): boolean {
+    return (
+      this.recipeForm.controls.tagIds.value
+        .includes(tagId)
+    );
+  }
+
   async saveRecipe(): Promise<void> {
     if (this.saving) {
       return;
@@ -278,137 +401,198 @@ export class RecipesComponent implements OnInit {
 
     if (this.recipeForm.invalid) {
       this.recipeForm.markAllAsTouched();
-      this.formErrorMessage = this.buildFormValidationMessage();
+
+      this.formErrorMessage =
+        this.buildFormValidationMessage();
+
       return;
     }
 
     this.formErrorMessage = '';
 
-    const request = this.buildRecipeRequest();
+    const request =
+      this.buildRecipeRequest();
 
     if (this.editingRecipe) {
-      const recipeToUpdate = this.editingRecipe;
+      const recipeToUpdate =
+        this.editingRecipe;
 
-      const result = await Swal.fire({
-        title: 'Enregistrer les modifications ?',
-        text: `Les modifications de "${recipeToUpdate.name}" seront enregistrées.`,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Enregistrer',
-        cancelButtonText: 'Annuler',
-        reverseButtons: true,
-      });
+      const result =
+        await Swal.fire({
+          title:
+            'Enregistrer les modifications ?',
+          text:
+            `Les modifications de "${recipeToUpdate.name}" seront enregistrées.`,
+          icon: 'question',
+          showCancelButton: true,
+          confirmButtonText: 'Enregistrer',
+          cancelButtonText: 'Annuler',
+          reverseButtons: true,
+        });
 
       if (!result.isConfirmed) {
         return;
       }
 
       this.saving = true;
-      this.updateRecipe(recipeToUpdate, request);
+
+      this.updateRecipe(
+        recipeToUpdate,
+        request,
+      );
 
       return;
     }
 
     this.saving = true;
+
     this.createRecipe(request);
   }
 
   private buildRecipeRequest(): RecipeRequest {
-    const value = this.recipeForm.getRawValue();
+    const value =
+      this.recipeForm.getRawValue();
 
     return {
       name: value.name.trim(),
 
-      /*
-       * Champ historique encore attendu par le backend.
-       */
-      category: this.editingRecipe?.category ?? 'OTHER',
+      category:
+        this.editingRecipe?.category ??
+        'OTHER',
 
       servings: value.servings,
-      estimatedCost: value.estimatedCost,
-      instructions: value.instructions.trim() || null,
 
-      ingredients: value.ingredients.map((ingredient) => ({
-        ingredientName: ingredient.ingredientName.trim(),
-        quantity: ingredient.quantity,
-        unit: ingredient.unit.trim(),
-      })),
+      estimatedCost:
+        value.estimatedCost,
+
+      instructions:
+        value.instructions.trim() ||
+        null,
+
+      ingredients:
+        value.ingredients.map(
+          (ingredient) => ({
+            ingredientName:
+              ingredient.ingredientName.trim(),
+            quantity:
+              ingredient.quantity,
+            unit:
+              ingredient.unit.trim(),
+          }),
+        ),
 
       seasons: value.seasons,
+
       tagIds: value.tagIds,
     };
   }
 
-  private createRecipe(request: RecipeRequest): void {
-    this.recipeService.createRecipe(request).subscribe({
-      next: (recipe) => {
-        this.recipes = [recipe, ...this.recipes];
+  private createRecipe(
+    request: RecipeRequest,
+  ): void {
+    this.recipeService
+      .createRecipe(request)
+      .subscribe({
+        next: (recipe) => {
+          this.recipes = [
+            recipe,
+            ...this.recipes,
+          ];
 
-        this.selectedRecipe = recipe;
-        this.showRecipeForm = false;
-        this.editingRecipe = null;
-        this.saving = false;
+          this.selectedRecipe = recipe;
+          this.showRecipeForm = false;
+          this.editingRecipe = null;
+          this.saving = false;
 
-        this.resetRecipeForm();
+          this.resetRecipeForm();
 
-        void Swal.fire({
-          title: 'Recette ajoutée',
-          text: `"${recipe.name}" a bien été enregistrée.`,
-          icon: 'success',
-          timer: 1400,
-          showConfirmButton: false,
-        });
-      },
+          void Swal.fire({
+            title: 'Recette ajoutée',
+            text:
+              `"${recipe.name}" a bien été enregistrée.`,
+            icon: 'success',
+            timer: 1400,
+            showConfirmButton: false,
+          });
+        },
 
-      error: (error: HttpErrorResponse) => {
-        this.saving = false;
+        error: (
+          error: HttpErrorResponse,
+        ) => {
+          this.saving = false;
 
-        console.error('Erreur lors de la création de la recette :', error);
+          console.error(
+            'Erreur lors de la création de la recette :',
+            error,
+          );
 
-        this.formErrorMessage = this.buildSaveErrorMessage(error, false);
-      },
-    });
+          this.formErrorMessage =
+            this.buildSaveErrorMessage(
+              error,
+              false,
+            );
+        },
+      });
   }
 
-  private updateRecipe(originalRecipe: Recipe, request: RecipeRequest): void {
-    this.recipeService.updateRecipe(originalRecipe.id, request).subscribe({
-      next: (updatedRecipe) => {
-        this.recipes = this.recipes.map((recipe) =>
-          recipe.id === updatedRecipe.id ? updatedRecipe : recipe,
-        );
+  private updateRecipe(
+    originalRecipe: Recipe,
+    request: RecipeRequest,
+  ): void {
+    this.recipeService
+      .updateRecipe(
+        originalRecipe.id,
+        request,
+      )
+      .subscribe({
+        next: (updatedRecipe) => {
+          this.recipes =
+            this.recipes.map(
+              (recipe) =>
+                recipe.id ===
+                updatedRecipe.id
+                  ? updatedRecipe
+                  : recipe,
+            );
 
-        this.selectedRecipe = updatedRecipe;
-        this.editingRecipe = null;
-        this.showRecipeForm = false;
-        this.saving = false;
+          this.selectedRecipe =
+            updatedRecipe;
 
-        this.resetRecipeForm();
+          this.editingRecipe = null;
+          this.showRecipeForm = false;
+          this.saving = false;
 
-        void Swal.fire({
-          title: 'Recette modifiée',
-          text: 'Les modifications ont bien été enregistrées.',
-          icon: 'success',
-          timer: 1400,
-          showConfirmButton: false,
-        });
-      },
+          this.resetRecipeForm();
 
-      error: (error: HttpErrorResponse) => {
-        this.saving = false;
+          void Swal.fire({
+            title: 'Recette modifiée',
+            text:
+              'Les modifications ont bien été enregistrées.',
+            icon: 'success',
+            timer: 1400,
+            showConfirmButton: false,
+          });
+        },
 
-        console.error(
-          `Échec de la modification de la recette ${originalRecipe.id} :`,
-          error,
-        );
+        error: (
+          error: HttpErrorResponse,
+        ) => {
+          this.saving = false;
 
-        this.formErrorMessage = this.buildSaveErrorMessage(error, true);
-      },
-    });
+          console.error(
+            `Échec de la modification de la recette ${originalRecipe.id} :`,
+            error,
+          );
+
+          this.formErrorMessage =
+            this.buildSaveErrorMessage(
+              error,
+              true,
+            );
+        },
+      });
   }
 
-  /**
-   * Transforme les principaux statuts HTTP en messages utiles.
-   */
   private buildSaveErrorMessage(
     error: HttpErrorResponse,
     editing: boolean,
@@ -438,145 +622,230 @@ export class RecipesComponent implements OnInit {
     }
   }
 
-  /**
-   * Télécharge uniquement la recette actuellement consultée.
-   */
-  downloadRecipe(recipe: Recipe): void {
+  downloadRecipe(
+    recipe: Recipe,
+  ): void {
     if (this.downloadingRecipe) {
       return;
     }
 
     this.downloadingRecipe = true;
 
-    this.recipeService.downloadRecipe(recipe.id).subscribe({
-      next: (recipeFile) => {
-        const downloadUrl = URL.createObjectURL(recipeFile);
-        const link = document.createElement('a');
+    this.recipeService
+      .downloadRecipe(recipe.id)
+      .subscribe({
+        next: (recipeFile) => {
+          const downloadUrl =
+            URL.createObjectURL(
+              recipeFile,
+            );
 
-        link.href = downloadUrl;
-        link.download = this.buildRecipeFilename(recipe);
+          const link =
+            document.createElement('a');
 
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
+          link.href = downloadUrl;
 
-        URL.revokeObjectURL(downloadUrl);
+          link.download =
+            this.buildRecipeFilename(
+              recipe,
+            );
 
-        this.downloadingRecipe = false;
-      },
+          document.body.appendChild(
+            link,
+          );
 
-      error: (error: HttpErrorResponse) => {
-        this.downloadingRecipe = false;
+          link.click();
+          link.remove();
 
-        console.error(
-          `Erreur lors du téléchargement de la recette ${recipe.id} :`,
-          error,
+          URL.revokeObjectURL(
+            downloadUrl,
+          );
+
+          this.downloadingRecipe =
+            false;
+        },
+
+        error: (
+          error: HttpErrorResponse,
+        ) => {
+          this.downloadingRecipe =
+            false;
+
+          console.error(
+            `Erreur lors du téléchargement de la recette ${recipe.id} :`,
+            error,
+          );
+
+          void Swal.fire({
+            title:
+              'Téléchargement impossible',
+            text:
+              'La recette n’a pas pu être téléchargée pour le moment.',
+            icon: 'error',
+            confirmButtonText: 'Fermer',
+          });
+        },
+      });
+  }
+
+  private buildRecipeFilename(
+    recipe: Recipe,
+  ): string {
+    const safeName =
+      recipe.name
+        .normalize('NFD')
+        .replace(
+          /[\u0300-\u036f]/g,
+          '',
+        )
+        .toLowerCase()
+        .replace(
+          /[^a-z0-9]+/g,
+          '-',
+        )
+        .replace(
+          /^-+|-+$/g,
+          '',
         );
 
-        void Swal.fire({
-          title: 'Téléchargement impossible',
-          text: 'La recette n’a pas pu être téléchargée pour le moment.',
-          icon: 'error',
-          confirmButtonText: 'Fermer',
-        });
-      },
-    });
+    return (
+      `my-popote-${
+        safeName ||
+        `recette-${recipe.id}`
+      }.txt`
+    );
   }
 
-  /**
-   * Produit un nom de fichier lisible sans caractères problématiques.
-   */
-  private buildRecipeFilename(recipe: Recipe): string {
-    const safeName = recipe.name
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
-
-    return `my-popote-${safeName || `recette-${recipe.id}`}.txt`;
-  }
-
-  async deleteRecipe(recipe: Recipe): Promise<void> {
-    const result = await Swal.fire({
-      title: 'Supprimer cette recette ?',
-      text: `"${recipe.name}" sera définitivement supprimée de votre bibliothèque.`,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonText: 'Supprimer',
-      cancelButtonText: 'Annuler',
-      reverseButtons: true,
-    });
+  async deleteRecipe(
+    recipe: Recipe,
+  ): Promise<void> {
+    const result =
+      await Swal.fire({
+        title:
+          'Supprimer cette recette ?',
+        text:
+          `"${recipe.name}" sera définitivement supprimée de votre bibliothèque.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Supprimer',
+        cancelButtonText: 'Annuler',
+        reverseButtons: true,
+      });
 
     if (!result.isConfirmed) {
       return;
     }
 
-    this.recipeService.deleteRecipe(recipe.id).subscribe({
-      next: () => {
-        this.recipes = this.recipes.filter(
-          (currentRecipe) => currentRecipe.id !== recipe.id,
-        );
+    this.recipeService
+      .deleteRecipe(recipe.id)
+      .subscribe({
+        next: () => {
+          this.recipes =
+            this.recipes.filter(
+              (currentRecipe) =>
+                currentRecipe.id !==
+                recipe.id,
+            );
 
-        this.closeModal();
+          this.closeModal();
 
-        void Swal.fire({
-          title: 'Recette supprimée',
-          icon: 'success',
-          timer: 1300,
-          showConfirmButton: false,
-        });
-      },
+          void Swal.fire({
+            title:
+              'Recette supprimée',
+            icon: 'success',
+            timer: 1300,
+            showConfirmButton: false,
+          });
+        },
 
-      error: () => {
-        void Swal.fire({
-          title: 'Suppression impossible',
-          text: 'La recette n’a pas pu être supprimée pour le moment.',
-          icon: 'error',
-          confirmButtonText: 'Fermer',
-        });
-      },
-    });
+        error: () => {
+          void Swal.fire({
+            title:
+              'Suppression impossible',
+            text:
+              'La recette n’a pas pu être supprimée pour le moment.',
+            icon: 'error',
+            confirmButtonText: 'Fermer',
+          });
+        },
+      });
   }
 
-  /**
-   * Les champs réellement indispensables sont volontairement limités.
-   */
   private buildFormValidationMessage(): string {
-    const controls = this.recipeForm.controls;
+    const controls =
+      this.recipeForm.controls;
 
-    if (controls.name.hasError('required')) {
+    if (
+      controls.name.hasError(
+        'required',
+      )
+    ) {
       return 'Veuillez indiquer un nom pour la recette.';
     }
 
-    if (controls.name.hasError('maxlength')) {
+    if (
+      controls.name.hasError(
+        'maxlength',
+      )
+    ) {
       return 'Le nom de la recette est trop long.';
     }
 
     if (
-      controls.servings.hasError('required') ||
-      controls.servings.hasError('min')
+      controls.servings.hasError(
+        'required',
+      ) ||
+      controls.servings.hasError(
+        'min',
+      )
     ) {
       return 'Le nombre de portions doit être au minimum de 1.';
     }
 
-    if (controls.estimatedCost.hasError('min')) {
+    if (
+      controls.estimatedCost.hasError(
+        'min',
+      )
+    ) {
       return 'Le coût estimé ne peut pas être négatif.';
     }
 
-    for (let index = 0; index < this.ingredients.length; index++) {
-      const ingredient = this.ingredients.at(index);
+    for (
+      let index = 0;
+      index < this.ingredients.length;
+      index++
+    ) {
+      const ingredient =
+        this.ingredients.at(index);
 
-      if (ingredient.get('ingredientName')?.hasError('required')) {
-        return `Veuillez indiquer le nom de l’ingrédient ${index + 1}.`;
+      if (
+        ingredient
+          .get('ingredientName')
+          ?.hasError('required')
+      ) {
+        return (
+          `Veuillez indiquer le nom de l’ingrédient ${index + 1}.`
+        );
       }
 
-      if (ingredient.get('quantity')?.invalid) {
-        return `Veuillez vérifier la quantité de l’ingrédient ${index + 1}.`;
+      if (
+        ingredient
+          .get('quantity')
+          ?.invalid
+      ) {
+        return (
+          `Veuillez vérifier la quantité de l’ingrédient ${index + 1}.`
+        );
       }
 
-      if (ingredient.get('unit')?.hasError('required')) {
-        return `Veuillez indiquer l’unité de l’ingrédient ${index + 1}.`;
+      if (
+        ingredient
+          .get('unit')
+          ?.hasError('required')
+      ) {
+        return (
+          `Veuillez indiquer l’unité de l’ingrédient ${index + 1}.`
+        );
       }
     }
 
@@ -594,13 +863,18 @@ export class RecipesComponent implements OnInit {
     });
 
     this.ingredients.clear();
-    this.ingredients.push(this.createIngredientForm());
+
+    this.ingredients.push(
+      this.createIngredientForm(),
+    );
 
     this.formErrorMessage = '';
   }
 
   toggleTag(tagId: number): void {
-    if (this.selectedTagIds.has(tagId)) {
+    if (
+      this.selectedTagIds.has(tagId)
+    ) {
       this.selectedTagIds.delete(tagId);
     } else {
       this.selectedTagIds.add(tagId);
@@ -609,36 +883,50 @@ export class RecipesComponent implements OnInit {
     this.loadFilteredRecipes();
   }
 
-  isTagSelected(tagId: number): boolean {
-    return this.selectedTagIds.has(tagId);
+  isTagSelected(
+    tagId: number,
+  ): boolean {
+    return (
+      this.selectedTagIds.has(tagId)
+    );
   }
 
   private loadFilteredRecipes(): void {
     this.loading = true;
     this.errorMessage = '';
 
-    this.recipeService.getRecipes([...this.selectedTagIds]).subscribe({
-      next: (recipes) => {
-        this.recipes = recipes;
-        this.loading = false;
-      },
+    this.recipeService
+      .getRecipes([
+        ...this.selectedTagIds,
+      ])
+      .subscribe({
+        next: (recipes) => {
+          this.recipes = recipes;
+          this.loading = false;
+        },
 
-      error: () => {
-        this.errorMessage =
-          'Impossible de filtrer les recettes pour le moment.';
+        error: () => {
+          this.errorMessage =
+            'Impossible de filtrer les recettes pour le moment.';
 
-        this.loading = false;
-      },
-    });
+          this.loading = false;
+        },
+      });
   }
 
   clearFilters(): void {
     this.selectedTagIds.clear();
+
     this.loadFilteredRecipes();
   }
 
-  seasonLabel(season: string): string {
-    const labels: Record<string, string> = {
+  seasonLabel(
+    season: string,
+  ): string {
+    const labels: Record<
+      string,
+      string
+    > = {
       SPRING: 'Printemps',
       SUMMER: 'Été',
       AUTUMN: 'Automne',
@@ -646,6 +934,10 @@ export class RecipesComponent implements OnInit {
       ALL_YEAR: 'Toute l’année',
     };
 
-    return labels[season.toUpperCase()] ?? season;
+    return (
+      labels[
+        season.toUpperCase()
+      ] ?? season
+    );
   }
 }

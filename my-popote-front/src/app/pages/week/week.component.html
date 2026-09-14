@@ -26,10 +26,7 @@
     Chargement du planning…
   </div>
 
-  <div *ngIf="
-      !loading &&
-      errorMessage
-    " class="state-card state-card-error">
+  <div *ngIf="!loading && errorMessage" class="state-card state-card-error">
     {{ errorMessage }}
   </div>
 
@@ -50,9 +47,8 @@
         </p>
       </div>
 
-      <button *ngIf="
-          selectedPreferredTagIds.size > 0
-        " type="button" class="clear-preferences-button" (click)="clearPreferredTags()">
+      <button *ngIf="selectedPreferredTagIds.size > 0" type="button" class="clear-preferences-button"
+        (click)="clearPreferredTags()">
         Effacer
       </button>
     </div>
@@ -87,6 +83,40 @@
       la génération utilisera simplement
       les recettes adaptées à la saison.
     </p>
+
+    <div class="budget-preference">
+      <div class="budget-header">
+        <label for="weekly-budget">
+          Budget maximum de la semaine
+        </label>
+
+        <strong>
+          {{ weeklyMaxBudget }} €
+        </strong>
+      </div>
+
+      <input id="weekly-budget" type="range" min="20" max="150" step="5" [(ngModel)]="weeklyMaxBudget" />
+
+      <div class="budget-scale">
+        <span>20 €</span>
+        <span>150 €</span>
+      </div>
+    </div>
+
+    <button *ngIf="!preferencesLoading" type="button" class="primary-button generate-preferences-button"
+      [disabled]="generating" (click)="generateWeek()">
+      {{
+      generating
+      ? 'Génération…'
+      : week
+      ? 'Générer une nouvelle proposition avec ces préférences'
+      : 'Générer avec ces préférences'
+      }}
+    </button>
+
+    <p *ngIf="generationErrorMessage" class="error-message">
+      {{ generationErrorMessage }}
+    </p>
   </section>
 
   <div *ngIf="
@@ -99,36 +129,17 @@
     </h2>
 
     <p>
-      Aucun menu n'a encore été généré
-      pour cette semaine.
-    </p>
-
-    <button type="button" class="primary-button" [disabled]="generating" (click)="generateWeek()">
-      {{
-      generating
-      ? 'Génération…'
-      : 'Générer ma semaine'
-      }}
-    </button>
-
-    <p *ngIf="generationErrorMessage" class="error-message">
-      {{ generationErrorMessage }}
+      Choisis tes préférences ci-dessus,
+      puis génère ta semaine.
     </p>
   </div>
 
-  <div *ngIf="
-      !loading &&
-      week
-    " class="current-week">
+  <div *ngIf="!loading && week" class="current-week">
     <div class="week-toolbar">
       <p>
         Semaine du
         <strong>
-          {{
-          weekLabel(
-          week.weekStartDate
-          )
-          }}
+          {{ weekLabel(week.weekStartDate) }}
         </strong>
       </p>
 
@@ -150,16 +161,16 @@
         <div class="meals">
           <div *ngFor="let meal of day.meals" class="meal-card">
             <span class="meal-type">
-              {{
-              mealTypeLabel(
-              meal.mealType
-              )
-              }}
+              {{ mealTypeLabel(meal.mealType) }}
             </span>
 
             <strong class="meal-name">
               {{ meal.recipeName }}
             </strong>
+
+            <button type="button" class="secondary-button" (click)="viewRecipe(meal.recipeId)">
+              Voir la recette
+            </button>
 
             <button *ngIf="
                 viewingCurrentWeek &&
@@ -177,38 +188,26 @@
               </label>
 
               <select [id]="'recipe-' + meal.id" [(ngModel)]="
-                  selectedRecipeByMeal[
-                    meal.id
-                  ]
+                  selectedRecipeByMeal[meal.id]
                 ">
                 <option [ngValue]="null">
                   Choisir une recette
                 </option>
 
-                <option *ngFor="
-                    let recipe of recipes
-                  " [ngValue]="recipe.id" [disabled]="
+                <option *ngFor="let recipe of recipes" [ngValue]="recipe.id" [disabled]="
                     recipe.id === meal.recipeId
                   ">
-                  {{
-                  recipeOptionLabel(
-                  recipe
-                  )
-                  }}
+                  {{ recipeOptionLabel(recipe) }}
                 </option>
               </select>
 
               <div class="replacement-actions">
                 <button type="button" class="primary-button" [disabled]="
-                    !selectedRecipeByMeal[
-                      meal.id
-                    ]
+                    !selectedRecipeByMeal[meal.id]
                   " (click)="
                     replaceMeal(
                       meal,
-                      selectedRecipeByMeal[
-                        meal.id
-                      ]!
+                      selectedRecipeByMeal[meal.id]!
                     )
                   ">
                   Valider
@@ -226,24 +225,7 @@
 
     <div *ngIf="viewingCurrentWeek" class="week-validation">
       <div class="week-actions">
-        <button type="button" class="
-            secondary-button
-            proposal-button
-          " [disabled]="
-            generating ||
-            validatingWeek
-          " (click)="generateWeek()">
-          {{
-          generating
-          ? 'Nouvelle proposition…'
-          : 'Faire une autre proposition'
-          }}
-        </button>
-
-        <button type="button" class="
-            primary-button
-            validate-button
-          " [disabled]="
+        <button type="button" class="primary-button validate-button" [disabled]="
             validatingWeek ||
             generating
           " (click)="validateWeek()">
@@ -254,10 +236,6 @@
           }}
         </button>
       </div>
-
-      <p *ngIf="generationErrorMessage" class="error-message">
-        {{ generationErrorMessage }}
-      </p>
 
       <p *ngIf="validationErrorMessage" class="error-message">
         {{ validationErrorMessage }}
@@ -278,38 +256,26 @@
         !historyLoading &&
         history.length === 0
       " class="history-empty">
-      Aucune semaine précédente
-      pour le moment.
+      Aucune semaine précédente pour le moment.
     </p>
 
     <div *ngIf="
         !historyLoading &&
         history.length > 0
       " class="history-list">
-      <button *ngFor="
-          let historicalWeek
-          of history
-        " type="button" class="history-card" (click)="
-          viewHistoryWeek(
-            historicalWeek
-          )
-        ">
+      <button *ngFor="let historicalWeek of history" type="button" class="history-card"
+        (click)="viewHistoryWeek(historicalWeek)">
         <span>
           Semaine du
         </span>
 
         <strong>
-          {{
-          weekLabel(
-          historicalWeek.weekStartDate
-          )
-          }}
+          {{ weekLabel(historicalWeek.weekStartDate) }}
         </strong>
 
         <span>
           {{
-          historicalWeek.estimatedCost
-          ?? 0
+          historicalWeek.estimatedCost ?? 0
           | number: '1.2-2'
           }}
           €

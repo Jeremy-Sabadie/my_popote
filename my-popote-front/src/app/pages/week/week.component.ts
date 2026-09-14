@@ -32,6 +32,11 @@ export class WeekComponent implements OnInit {
   preferenceTags: RecipeTag[] = [];
   selectedPreferredTagIds = new Set<number>();
 
+  /**
+   * Budget maximum souhaité pour la semaine.
+   */
+  weeklyMaxBudget = 60;
+
   days: WeekDay[] = [];
 
   loading = true;
@@ -67,9 +72,6 @@ export class WeekComponent implements OnInit {
     this.loadPreferenceTags();
   }
 
-  /**
-   * Charge le planning de la semaine à préparer.
-   */
   private loadWeek(): void {
     this.loading = true;
     this.errorMessage = '';
@@ -94,10 +96,6 @@ export class WeekComponent implements OnInit {
     });
   }
 
-  /**
-   * Charge les tags disponibles pour les préférences
-   * de génération de la semaine.
-   */
   private loadPreferenceTags(): void {
     this.preferencesLoading = true;
     this.preferencesErrorMessage = '';
@@ -117,9 +115,6 @@ export class WeekComponent implements OnInit {
     });
   }
 
-  /**
-   * Active ou désactive un tag dans les préférences.
-   */
   togglePreferredTag(tagId: number): void {
     if (this.selectedPreferredTagIds.has(tagId)) {
       this.selectedPreferredTagIds.delete(tagId);
@@ -129,23 +124,14 @@ export class WeekComponent implements OnInit {
     this.selectedPreferredTagIds.add(tagId);
   }
 
-  /**
-   * Indique si un tag est actuellement sélectionné.
-   */
   isPreferredTagSelected(tagId: number): boolean {
     return this.selectedPreferredTagIds.has(tagId);
   }
 
-  /**
-   * Efface toutes les préférences sélectionnées.
-   */
   clearPreferredTags(): void {
     this.selectedPreferredTagIds.clear();
   }
 
-  /**
-   * Génère la semaine à partir des recettes disponibles.
-   */
   generateWeek(): void {
     if (this.generating) {
       return;
@@ -169,7 +155,7 @@ export class WeekComponent implements OnInit {
           .generateWeek({
             weekStartDate: this.weekStartDate,
             includeWeekend: true,
-            maxBudget: null,
+            maxBudget: this.weeklyMaxBudget,
             recipeIds: recipes.map((recipe) => recipe.id),
             preferredTagIds: [...this.selectedPreferredTagIds],
           })
@@ -196,8 +182,17 @@ export class WeekComponent implements OnInit {
   }
 
   /**
-   * Prépare le remplacement d'un repas.
+   * Ouvre la fiche déjà existante dans l'écran Recettes.
    */
+  viewRecipe(recipeId: number): void {
+    this.router.navigate(['/recipes'], {
+      queryParams: {
+        recipeId,
+        from: 'week',
+      },
+    });
+  }
+
   startReplacement(meal: PlannedMeal): void {
     this.replacementErrorMessage = '';
     this.replacingMealId = meal.id;
@@ -221,17 +216,11 @@ export class WeekComponent implements OnInit {
     });
   }
 
-  /**
-   * Annule le remplacement en cours.
-   */
   cancelReplacement(): void {
     this.replacingMealId = null;
     this.replacementErrorMessage = '';
   }
 
-  /**
-   * Remplace uniquement la recette du repas sélectionné.
-   */
   replaceMeal(meal: PlannedMeal, recipeId: number): void {
     if (!recipeId) {
       this.replacementErrorMessage = 'Choisissez une recette de remplacement.';
@@ -267,16 +256,8 @@ export class WeekComponent implements OnInit {
     });
   }
 
-  /**
-   * Construit le libellé affiché dans la liste
-   * des recettes de remplacement.
-   *
-   * Exemple :
-   * Poulet curry — Hiver · Sport · Protéiné
-   */
   recipeOptionLabel(recipe: Recipe): string {
     const seasons = recipe.seasons ?? [];
-
     const tags = (recipe.tags ?? []).map((tag) => tag.name);
 
     const characteristics = [...seasons, ...tags];
@@ -288,10 +269,6 @@ export class WeekComponent implements OnInit {
     return `${recipe.name} — ${characteristics.join(' · ')}`;
   }
 
-  /**
-   * Valide la semaine en générant la liste de courses
-   * correspondant au planning.
-   */
   validateWeek(): void {
     if (!this.week || !this.viewingCurrentWeek) {
       return;
@@ -320,9 +297,6 @@ export class WeekComponent implements OnInit {
     });
   }
 
-  /**
-   * Charge l'historique des semaines générées.
-   */
   private loadHistory(): void {
     this.historyLoading = true;
 
@@ -357,15 +331,6 @@ export class WeekComponent implements OnInit {
     this.days = this.buildDays(week);
   }
 
-  /**
-   * Détermine le lundi de la semaine à planifier.
-   *
-   * Du lundi au vendredi :
-   * on prépare la semaine en cours.
-   *
-   * Le samedi et le dimanche :
-   * on prépare la semaine suivante.
-   */
   private getPlanningWeekMonday(): string {
     const today = new Date();
     const day = today.getDay();
