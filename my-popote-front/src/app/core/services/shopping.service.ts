@@ -3,7 +3,13 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import { ShoppingList } from '../../models/shopping-list.model';
+import { ShoppingItem, ShoppingList } from '../../models/shopping-list.model';
+
+export interface ManualShoppingItemRequest {
+  name: string;
+  quantity: number;
+  unit: string;
+}
 
 @Injectable({
   providedIn: 'root',
@@ -30,6 +36,20 @@ export class ShoppingService {
   getShoppingList(shoppingListId: number): Observable<ShoppingList> {
     return this.http.get<ShoppingList>(
       `${this.shoppingListsUrl}/${shoppingListId}`,
+    );
+  }
+
+  /**
+   * Ajoute un produit saisi manuellement par l'utilisateur
+   * à une liste déjà générée.
+   */
+  addManualItem(
+    shoppingListId: number,
+    item: ManualShoppingItemRequest,
+  ): Observable<ShoppingItem> {
+    return this.http.post<ShoppingItem>(
+      `${this.shoppingListsUrl}/${shoppingListId}/items`,
+      item,
     );
   }
 }

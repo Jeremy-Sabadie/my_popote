@@ -88,6 +88,72 @@
   background: #ffffff;
 }
 
+/*
+ * Accès rapides vers les Drives.
+ *
+ * My Popote ne transmet aucune donnée :
+ * on ouvre simplement le site de l'enseigne choisie.
+ */
+.drive-section {
+  margin-top: 1.5rem;
+  padding: 1rem;
+
+  border: 1px solid #dedede;
+  border-radius: 0.9rem;
+
+  background: #ffffff;
+}
+
+.drive-section h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.drive-section>p {
+  margin: 0.4rem 0 1rem;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  opacity: 0.7;
+}
+
+.drive-links {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
+}
+
+.drive-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+
+  min-height: 44px;
+  padding: 0.7rem 0.8rem;
+
+  border: 1px solid #315f44;
+  border-radius: 0.75rem;
+
+  background: #ffffff;
+  color: #315f44;
+
+  box-sizing: border-box;
+
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.drive-link:hover,
+.drive-link:focus-visible {
+  background: #f2f7f3;
+}
+
+.drive-link span {
+  flex-shrink: 0;
+}
+
 @media (min-width: 640px) {
   .shopping-header {
     flex-direction: row;

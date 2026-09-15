@@ -224,11 +224,78 @@
     </div>
 
     <div *ngIf="viewingCurrentWeek" class="week-validation">
+      <section class="manual-shopping">
+        <h2>
+          Ajouter aux courses
+        </h2>
+
+        <p>
+          Ajoutez ici les produits dont tu as besoin
+          en plus des ingrédients prévus dans tes recettes.
+        </p>
+
+        <div class="manual-shopping-form">
+          <label for="manual-item-name">
+            Produit
+          </label>
+
+          <input id="manual-item-name" type="text" maxlength="150" placeholder="Ex. bananes"
+            [(ngModel)]="manualItemName" />
+
+          <label for="manual-item-quantity">
+            Quantité
+          </label>
+
+          <input id="manual-item-quantity" type="number" min="0.001" step="0.001" [(ngModel)]="manualItemQuantity" />
+
+          <label for="manual-item-unit">
+            Unité
+          </label>
+
+          <input id="manual-item-unit" type="text" maxlength="30" placeholder="Ex. pièce"
+            [(ngModel)]="manualItemUnit" />
+
+          <button type="button" class="secondary-button" (click)="addManualShoppingItem()">
+            + Ajouter
+          </button>
+        </div>
+
+        <p *ngIf="manualItemErrorMessage" class="error-message">
+          {{ manualItemErrorMessage }}
+        </p>
+
+        <div *ngIf="manualShoppingItems.length > 0" class="manual-shopping-items">
+          <p>
+            <strong>
+              Produits supplémentaires
+            </strong>
+          </p>
+
+          <div *ngFor="
+              let item of manualShoppingItems;
+              let itemIndex = index
+            " class="manual-shopping-item">
+            <span>
+              {{ item.name }}
+              —
+              {{ item.quantity }}
+              {{ item.unit }}
+            </span>
+
+            <button type="button" class="secondary-button" (click)="
+                removeManualShoppingItem(itemIndex)
+              ">
+              Retirer
+            </button>
+          </div>
+        </div>
+      </section>
+
       <div class="week-actions">
         <button type="button" class="primary-button validate-button" [disabled]="
             validatingWeek ||
             generating
-          " (click)="validateWeek()">
+          " (click)="validateWeek()" style="width: 50%;margin: 0 auto;">
           {{
           validatingWeek
           ? 'Préparation de la liste…'
@@ -270,13 +337,16 @@
         </span>
 
         <strong>
-          {{ weekLabel(historicalWeek.weekStartDate) }}
+          {{
+          weekLabel(
+          historicalWeek.weekStartDate
+          )
+          }}
         </strong>
 
         <span>
           {{
           historicalWeek.estimatedCost ?? 0
-          | number: '1.2-2'
           }}
           €
         </span>

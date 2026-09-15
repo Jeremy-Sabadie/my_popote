@@ -183,7 +183,7 @@
 }
 
 .budget-preference input[type='range'] {
-  width: 100%;
+  width: 50%;
   min-height: 32px;
   margin: 0;
   cursor: pointer;
@@ -288,6 +288,114 @@
 
 .week-validation {
   margin-top: 1.5rem;
+}
+
+/*
+ * Produits ajoutés manuellement avant la génération
+ * de la liste de courses.
+ *
+ * L'affichage est volontairement pensé mobile-first :
+ * les champs restent faciles à utiliser au pouce.
+ */
+.manual-shopping {
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border: 1px solid #dedede;
+  border-radius: 1rem;
+  background: #ffffff;
+}
+
+.manual-shopping h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.manual-shopping>p {
+  margin: 0.4rem 0 1rem;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  opacity: 0.7;
+}
+
+.manual-shopping-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem 0.75rem;
+}
+
+.manual-shopping-form label {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.manual-shopping-form label:first-of-type,
+.manual-shopping-form input:first-of-type {
+  grid-column: 1 / -1;
+}
+
+.manual-shopping-form input {
+  width: 100%;
+  min-width: 0;
+  min-height: 46px;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #cfcfcf;
+  border-radius: 0.65rem;
+  background: #ffffff;
+  box-sizing: border-box;
+  font: inherit;
+}
+
+.manual-shopping-form input:focus {
+  border-color: #315f44;
+  outline: 2px solid rgba(49, 95, 68, 0.15);
+  outline-offset: 1px;
+}
+
+/*
+ * Action secondaire volontairement compacte :
+ * elle ne doit pas concurrencer "Valider ma semaine".
+ */
+.manual-shopping-form .secondary-button {
+  grid-column: 1 / -1;
+  justify-self: end;
+  width: auto;
+  min-width: 140px;
+  margin-top: 0.25rem;
+}
+
+.manual-shopping-items {
+  display: grid;
+  gap: 0.6rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #eeeeee;
+}
+
+.manual-shopping-items>p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.manual-shopping-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.65rem;
+  background: #f5f5f5;
+}
+
+.manual-shopping-item span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.manual-shopping-item .secondary-button {
+  flex-shrink: 0;
+  min-height: 38px;
+  padding: 0.45rem 0.7rem;
+  font-size: 0.85rem;
 }
 
 .week-actions {
