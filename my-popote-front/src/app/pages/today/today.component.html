@@ -1,1 +1,87 @@
-<p>today works!</p>
+<section class="today-page">
+  <header class="today-header">
+    <p class="eyebrow">
+      My Popote
+    </p>
+
+    <h1>
+      Aujourd'hui
+    </h1>
+
+    <p class="today-date">
+      {{ todayLabel }}
+    </p>
+  </header>
+
+  <div *ngIf="loading" class="state-card">
+    Chargement des repas…
+  </div>
+
+  <div *ngIf="!loading && errorMessage" class="state-card state-card-error">
+    {{ errorMessage }}
+  </div>
+
+  <div *ngIf="
+      !loading &&
+      !errorMessage &&
+      meals.length === 0
+    " class="state-card">
+    <h2>
+      Rien de prévu aujourd'hui
+    </h2>
+
+    <p>
+      Aucun repas n'est présent dans ton planning pour cette journée.
+    </p>
+  </div>
+
+  <div *ngIf="
+      !loading &&
+      !errorMessage &&
+      meals.length > 0
+    " class="today-meals">
+    <article class="meal-card">
+      <span class="meal-type">
+        Déjeuner
+      </span>
+
+      <ng-container *ngIf="lunch; else noLunch">
+        <strong class="meal-name">
+          {{ lunch.recipeName }}
+        </strong>
+
+        <button type="button" class="recipe-button" (click)="viewRecipe(lunch.recipeId)">
+          Voir la recette
+        </button>
+      </ng-container>
+
+      <ng-template #noLunch>
+        <p class="missing-meal">
+          Aucun déjeuner prévu.
+        </p>
+      </ng-template>
+    </article>
+
+    <article class="meal-card">
+      <span class="meal-type">
+        Dîner
+      </span>
+
+      <ng-container *ngIf="dinner; else noDinner">
+        <strong class="meal-name">
+          {{ dinner.recipeName }}
+        </strong>
+
+        <button type="button" class="recipe-button" (click)="viewRecipe(dinner.recipeId)">
+          Voir la recette
+        </button>
+      </ng-container>
+
+      <ng-template #noDinner>
+        <p class="missing-meal">
+          Aucun dîner prévu.
+        </p>
+      </ng-template>
+    </article>
+  </div>
+</section>
