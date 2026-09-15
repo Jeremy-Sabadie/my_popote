@@ -3,9 +3,13 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { forkJoin } from 'rxjs';
 
 import { RecipeService } from '../../core/services/recipe.service';
-import { ShoppingService } from '../../core/services/shopping.service';
+import {
+  ManualShoppingItemRequest,
+  ShoppingService,
+} from '../../core/services/shopping.service';
 import { WeekService } from '../../core/services/week.service';
 import { PlannedMeal } from '../../models/planned-meal.model';
 import { Recipe, RecipeTag } from '../../models/recipe.model';
@@ -37,6 +41,17 @@ export class WeekComponent implements OnInit {
    */
   weeklyMaxBudget = 60;
 
+  /**
+   * Produits supplémentaires préparés par l'utilisateur.
+   * Ils ne sont envoyés à l'API qu'après génération
+   * de la liste de courses.
+   */
+  manualShoppingItems: ManualShoppingItemRequest[] = [];
+
+  manualItemName = '';
+  manualItemQuantity = 1;
+  manualItemUnit = 'pièce';
+
   days: WeekDay[] = [];
 
   loading = true;
@@ -54,6 +69,7 @@ export class WeekComponent implements OnInit {
   replacementErrorMessage = '';
   validationErrorMessage = '';
   preferencesErrorMessage = '';
+  manualItemErrorMessage = '';
 
   weekStartDate = '';
 
@@ -269,6 +285,48 @@ export class WeekComponent implements OnInit {
     return `${recipe.name} — ${characteristics.join(' · ')}`;
   }
 
+  /**
+   * Prépare un produit supplémentaire.
+   * Rien n'est encore envoyé à l'API à cette étape.
+   */
+  addManualShoppingItem(): void {
+    const name = this.manualItemName.trim();
+    const unit = this.manualItemUnit.trim();
+
+    this.manualItemErrorMessage = '';
+
+    if (!name) {
+      this.manualItemErrorMessage = 'Indiquez le nom du produit à ajouter.';
+      return;
+    }
+
+    if (!this.manualItemQuantity || this.manualItemQuantity <= 0) {
+      this.manualItemErrorMessage = 'La quantité doit être supérieure à zéro.';
+      return;
+    }
+
+    if (!unit) {
+      this.manualItemErrorMessage = 'Indiquez une unité.';
+      return;
+    }
+
+    this.manualShoppingItems.push({
+      name,
+      quantity: this.manualItemQuantity,
+      unit,
+    });
+
+    // On remet le formulaire dans son état pratique
+    // pour pouvoir ajouter rapidement le produit suivant.
+    this.manualItemName = '';
+    this.manualItemQuantity = 1;
+    this.manualItemUnit = 'pièce';
+  }
+
+  removeManualShoppingItem(index: number): void {
+    this.manualShoppingItems.splice(index, 1);
+  }
+
   validateWeek(): void {
     if (!this.week || !this.viewingCurrentWeek) {
       return;
@@ -279,11 +337,29 @@ export class WeekComponent implements OnInit {
 
     this.shoppingService.generateFromMealPlan(this.week.id).subscribe({
       next: (shoppingList) => {
-        this.validatingWeek = false;
+        if (this.manualShoppingItems.length === 0) {
+          this.openShoppingList(shoppingList.id);
+          return;
+        }
 
-        this.router.navigate(['/shopping'], {
-          queryParams: {
-            listId: shoppingList.id,
+        /**
+         * La liste doit exister avant les ajouts manuels :
+         * on envoie donc les produits seulement après sa génération.
+         */
+        const manualItemRequests = this.manualShoppingItems.map((item) =>
+          this.shoppingService.addManualItem(shoppingList.id, item),
+        );
+
+        forkJoin(manualItemRequests).subscribe({
+          next: () => {
+            this.manualShoppingItems = [];
+            this.openShoppingList(shoppingList.id);
+          },
+
+          error: () => {
+            this.validatingWeek = false;
+            this.validationErrorMessage =
+              'La liste a été générée, mais certains produits supplémentaires n’ont pas pu être ajoutés.';
           },
         });
       },
@@ -293,6 +369,16 @@ export class WeekComponent implements OnInit {
 
         this.validationErrorMessage =
           'La liste de courses n’a pas pu être générée.';
+      },
+    });
+  }
+
+  private openShoppingList(shoppingListId: number): void {
+    this.validatingWeek = false;
+
+    this.router.navigate(['/shopping'], {
+      queryParams: {
+        listId: shoppingListId,
       },
     });
   }

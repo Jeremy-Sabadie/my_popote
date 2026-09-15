@@ -1,8 +1,13 @@
 <section class="shopping-page">
   <header class="shopping-header">
     <div>
-      <p class="eyebrow">Ma semaine</p>
-      <h1>Liste de courses</h1>
+      <p class="eyebrow">
+        Ma semaine
+      </p>
+
+      <h1>
+        Liste de courses
+      </h1>
     </div>
 
     <button *ngIf="
@@ -51,4 +56,43 @@
       </span>
     </article>
   </div>
+
+  <section *ngIf="
+      !loading &&
+      shoppingList &&
+      shoppingList.items.length > 0
+    " class="drive-section">
+    <h2>
+      Commander mes courses
+    </h2>
+
+    <p>
+      Ouvre ton Drive habituel avec ta liste
+      My Popote à portée de main.
+    </p>
+
+    <div class="drive-links">
+      <a class="drive-link" href="https://www.leclercdrive.fr/mobile/" target="_blank" rel="noopener noreferrer">
+        E.Leclerc Drive
+        <span aria-hidden="true">↗</span>
+      </a>
+
+      <a class="drive-link" href="https://www.carrefour.fr/services/drive" target="_blank" rel="noopener noreferrer">
+        Carrefour Drive
+        <span aria-hidden="true">↗</span>
+      </a>
+
+      <a class="drive-link" href="https://www.intermarche.com/enseigne/services/drive" target="_blank"
+        rel="noopener noreferrer">
+        Intermarché Drive
+        <span aria-hidden="true">↗</span>
+      </a>
+
+      <a class="drive-link" href="https://www.auchan.fr/parcours-de-courses-drive/ep-parcours-de-courses-drive"
+        target="_blank" rel="noopener noreferrer">
+        Auchan Drive
+        <span aria-hidden="true">↗</span>
+      </a>
+    </div>
+  </section>
 </section>
