@@ -1,3 +1,4 @@
+
 package fr.mypopote.my_popote_api.planning;
 
 import fr.mypopote.my_popote_api.planning.dto.GenerateMealPlanRequest;
@@ -133,7 +134,8 @@ public class MealPlanService {
             generateMeals(
                 savedPlan,
                 recipes,
-                request.preferredTagIds()
+                request.preferredTagIds(),
+                request.preferredSeason()
             );
 
         meals =
@@ -294,12 +296,14 @@ public class MealPlanService {
     private List<PlannedMeal> generateMeals(
         MealPlan mealPlan,
         List<Recipe> recipes,
-        List<Long> preferredTagIds
+        List<Long> preferredTagIds,
+        String preferredSeason
     ) {
         List<Recipe> seasonalRecipes =
             selectRecipesForSeason(
                 recipes,
-                mealPlan.getWeekStartDate()
+                mealPlan.getWeekStartDate(),
+                preferredSeason
             );
 
         List<Recipe> preferredRecipes =
@@ -603,7 +607,7 @@ public class MealPlanService {
 
     /**
      * Sélectionne les recettes compatibles avec
-     * la saison correspondant à la semaine.
+     * la saison choisie, ou celle de la semaine par défaut.
      *
      * Une recette sans saison est utilisable toute l'année.
      *
@@ -613,12 +617,13 @@ public class MealPlanService {
      */
     private List<Recipe> selectRecipesForSeason(
         List<Recipe> recipes,
-        LocalDate weekStartDate
+        LocalDate weekStartDate,
+        String preferredSeason
     ) {
         String season =
-            getSeason(
-                weekStartDate
-            );
+            preferredSeason == null || preferredSeason.isBlank()
+                ? getSeason(weekStartDate)
+                : preferredSeason;
 
         List<Recipe> eligibleRecipes =
             recipes.stream()

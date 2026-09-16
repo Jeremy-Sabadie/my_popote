@@ -13,7 +13,7 @@ import {
 import { WeekService } from '../../core/services/week.service';
 import { PlannedMeal } from '../../models/planned-meal.model';
 import { Recipe, RecipeTag } from '../../models/recipe.model';
-import { Week } from '../../models/week.model';
+import { PreferredSeason, Week } from '../../models/week.model';
 
 interface WeekDay {
   date: string;
@@ -35,6 +35,23 @@ export class WeekComponent implements OnInit {
 
   preferenceTags: RecipeTag[] = [];
   selectedPreferredTagIds = new Set<number>();
+
+  /**
+   * Par défaut, l'API déduit la saison de la date du planning.
+   * L'utilisateur peut choisir une autre saison pour sa proposition.
+   */
+  selectedPreferredSeason: PreferredSeason = null;
+
+  readonly seasonOptions: {
+    value: PreferredSeason;
+    label: string;
+  }[] = [
+    { value: null, label: 'Automatique' },
+    { value: 'SPRING', label: 'Printemps' },
+    { value: 'SUMMER', label: 'Été' },
+    { value: 'AUTUMN', label: 'Automne' },
+    { value: 'WINTER', label: 'Hiver' },
+  ];
 
   /**
    * Budget maximum souhaité pour la semaine.
@@ -144,8 +161,13 @@ export class WeekComponent implements OnInit {
     return this.selectedPreferredTagIds.has(tagId);
   }
 
-  clearPreferredTags(): void {
+  /**
+   * Remet les tags et la saison à leur état par défaut.
+   * Le budget reste inchangé.
+   */
+  clearPreferences(): void {
     this.selectedPreferredTagIds.clear();
+    this.selectedPreferredSeason = null;
   }
 
   generateWeek(): void {
@@ -174,6 +196,7 @@ export class WeekComponent implements OnInit {
             maxBudget: this.weeklyMaxBudget,
             recipeIds: recipes.map((recipe) => recipe.id),
             preferredTagIds: [...this.selectedPreferredTagIds],
+            preferredSeason: this.selectedPreferredSeason,
           })
           .subscribe({
             next: (week) => {
@@ -366,7 +389,6 @@ export class WeekComponent implements OnInit {
 
       error: () => {
         this.validatingWeek = false;
-
         this.validationErrorMessage =
           'La liste de courses n’a pas pu être générée.';
       },

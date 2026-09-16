@@ -47,10 +47,29 @@
         </p>
       </div>
 
-      <button *ngIf="selectedPreferredTagIds.size > 0" type="button" class="clear-preferences-button"
-        (click)="clearPreferredTags()">
+      <button *ngIf="
+          selectedPreferredTagIds.size > 0 ||
+          selectedPreferredSeason !== null
+        " type="button" class="clear-preferences-button" (click)="clearPreferences()">
         Effacer
       </button>
+    </div>
+
+    <div class="budget-preference">
+      <label for="preferred-season">
+        Saison des recettes à privilégier
+      </label>
+
+      <select id="preferred-season" name="preferredSeason" [(ngModel)]="selectedPreferredSeason">
+        <option *ngFor="let season of seasonOptions" [ngValue]="season.value">
+          {{ season.label }}
+        </option>
+      </select>
+
+      <p class="preferences-info">
+        En mode automatique, My Popote utilise
+        la saison correspondant à la date de la semaine.
+      </p>
     </div>
 
     <p *ngIf="preferencesLoading" class="preferences-info">
@@ -77,7 +96,8 @@
     <p *ngIf="
         !preferencesLoading &&
         !preferencesErrorMessage &&
-        selectedPreferredTagIds.size === 0
+        selectedPreferredTagIds.size === 0 &&
+        selectedPreferredSeason === null
       " class="preferences-info">
       Aucune préférence sélectionnée :
       la génération utilisera simplement
@@ -230,7 +250,7 @@
         </h2>
 
         <p>
-          Ajoutez ici les produits dont tu as besoin
+          Ajoute ici les produits dont tu as besoin
           en plus des ingrédients prévus dans tes recettes.
         </p>
 
@@ -295,7 +315,7 @@
         <button type="button" class="primary-button validate-button" [disabled]="
             validatingWeek ||
             generating
-          " (click)="validateWeek()" style="width: 50%;margin: 0 auto;">
+          " (click)="validateWeek()" style="width: 50%; margin: 0 auto;">
           {{
           validatingWeek
           ? 'Préparation de la liste…'

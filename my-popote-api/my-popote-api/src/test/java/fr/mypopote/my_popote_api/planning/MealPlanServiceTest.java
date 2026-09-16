@@ -386,6 +386,66 @@ class MealPlanServiceTest {
     }
 
     @Test
+    void shouldUseSelectedSeasonInsteadOfCalendarSeason() {
+        Long userId = 1L;
+        LocalDate monday = LocalDate.of(2026, 9, 14);
+
+        User user = new User(
+            "jeremy@example.com",
+            "hashed-password",
+            "Jérémy"
+        );
+
+        Recipe autumnRecipe = new Recipe(
+            user,
+            "Poêlée d'automne",
+            "VEGETARIAN",
+            2,
+            new BigDecimal("5.00"),
+            null
+        );
+        autumnRecipe.addSeason("AUTUMN");
+
+        Recipe winterRecipe = new Recipe(
+            user,
+            "Tartiflette",
+            "MEAT",
+            2,
+            new BigDecimal("7.00"),
+            null
+        );
+        winterRecipe.addSeason("WINTER");
+
+        // Une semaine de septembre doit pouvoir utiliser la saison choisie.
+        GenerateMealPlanRequest request = new GenerateMealPlanRequest(
+            monday,
+            false,
+            null,
+            List.of(10L, 20L),
+            List.of(),
+            "WINTER"
+        );
+
+        when(recipeRepository.findByIdAndUserId(10L, userId))
+            .thenReturn(Optional.of(autumnRecipe));
+        when(recipeRepository.findByIdAndUserId(20L, userId))
+            .thenReturn(Optional.of(winterRecipe));
+        when(mealPlanRepository.findByUserIdAndWeekStartDate(userId, monday))
+            .thenReturn(Optional.empty());
+        when(mealPlanRepository.save(any(MealPlan.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
+        when(plannedMealRepository.saveAll(anyList()))
+            .thenAnswer(invocation -> invocation.getArgument(0));
+
+        MealPlanResponse result = mealPlanService.generate(userId, request);
+
+        assertThat(result.meals()).hasSize(10);
+        assertThat(result.meals()).allSatisfy(meal ->
+            assertThat(meal.recipeName()).isEqualTo("Tartiflette")
+        );
+    }
+
+    @Test
     void shouldPreferRecipesMatchingPreferredTags() {
         Long userId = 1L;
 
