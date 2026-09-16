@@ -1,3 +1,4 @@
+
 package fr.mypopote.my_popote_api.planning.dto;
 
 import jakarta.validation.constraints.NotEmpty;
@@ -11,32 +12,20 @@ import java.util.List;
 /**
  * Données nécessaires pour générer automatiquement une semaine.
  *
- * Les recettes candidates sont choisies par l'utilisateur.
- *
- * Les tags préférés permettent au moteur de génération
- * de privilégier certains types de recettes sans en faire
- * des contraintes obligatoires.
+ * Les tags permettent de privilégier certaines recettes.
+ * La saison choisie peut remplacer celle déduite de la date.
  */
 public record GenerateMealPlanRequest(
-
-    @NotNull
-    LocalDate weekStartDate,
-
+    @NotNull LocalDate weekStartDate,
     boolean includeWeekend,
-
-    @Positive
-    BigDecimal maxBudget,
-
-    @NotEmpty
-    List<Long> recipeIds,
-
-    List<Long> preferredTagIds
-
+    @Positive BigDecimal maxBudget,
+    @NotEmpty List<Long> recipeIds,
+    List<Long> preferredTagIds,
+    String preferredSeason
 ) {
 
     /**
-     * Constructeur conservé pour les appels existants
-     * qui ne fournissent pas encore de préférences.
+     * Conserve les appels existants sans préférences.
      */
     public GenerateMealPlanRequest(
         LocalDate weekStartDate,
@@ -49,7 +38,29 @@ public record GenerateMealPlanRequest(
             includeWeekend,
             maxBudget,
             recipeIds,
-            List.of()
+            List.of(),
+            null
+        );
+    }
+
+    /**
+     * Conserve les appels existants avec préférences de tags.
+     * Sans saison explicite, le moteur utilise la date de la semaine.
+     */
+    public GenerateMealPlanRequest(
+        LocalDate weekStartDate,
+        boolean includeWeekend,
+        BigDecimal maxBudget,
+        List<Long> recipeIds,
+        List<Long> preferredTagIds
+    ) {
+        this(
+            weekStartDate,
+            includeWeekend,
+            maxBudget,
+            recipeIds,
+            preferredTagIds,
+            null
         );
     }
 }
