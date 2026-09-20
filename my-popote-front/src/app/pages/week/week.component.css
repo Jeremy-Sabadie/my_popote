@@ -446,6 +446,14 @@
   opacity: 0.7;
 }
 
+/*
+ * Le planning imprimable existe dans le HTML,
+ * mais ne doit pas apparaître dans l'interface habituelle.
+ */
+.printable-week {
+  display: none;
+}
+
 @media (min-width: 640px) {
   .week-page {
     padding: 1.5rem;
@@ -461,5 +469,136 @@
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
+  }
+}
+
+/*
+ * Impression du menu hebdomadaire.
+ *
+ * Le navigateur permet d'imprimer sur papier ou
+ * d'enregistrer le document au format PDF.
+ */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm;
+  }
+
+  :host {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background: #ffffff;
+    color: #222222;
+  }
+
+  .week-page {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  /*
+   * On retire les éléments interactifs et les informations
+   * qui n'appartiennent pas au menu à afficher sur le frigo.
+   */
+  .week-header,
+  .state-card,
+  .preferences-card,
+  .week-toolbar,
+  .current-week>.error-message,
+  .days,
+  .week-validation,
+  .history-section {
+    display: none !important;
+  }
+
+  .current-week {
+    display: block;
+  }
+
+  .printable-week {
+    display: block;
+    width: 100%;
+    color: #222222;
+    background: #ffffff;
+    font-family: Arial, sans-serif;
+    font-size: 10pt;
+    line-height: 1.35;
+  }
+
+  .printable-week-header {
+    margin-bottom: 8mm;
+    padding-bottom: 4mm;
+    border-bottom: 1px solid #555555;
+    text-align: center;
+  }
+
+  .printable-week-brand {
+    margin: 0 0 2mm;
+    font-size: 9pt;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .printable-week-header h2 {
+    margin: 0 0 2mm;
+    font-size: 18pt;
+    line-height: 1.2;
+  }
+
+  .printable-week-header>p:last-child {
+    margin: 0;
+    font-size: 10pt;
+  }
+
+  .printable-days {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 3mm;
+  }
+
+  .printable-day {
+    padding: 3mm 4mm;
+    border: 1px solid #aaaaaa;
+    border-radius: 2mm;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .printable-day h3 {
+    margin: 0 0 2mm;
+    padding-bottom: 1.5mm;
+    border-bottom: 1px solid #dddddd;
+    font-size: 11pt;
+    line-height: 1.2;
+  }
+
+  .printable-meal {
+    display: grid;
+    grid-template-columns: 26mm minmax(0, 1fr);
+    gap: 3mm;
+    align-items: baseline;
+    padding: 1mm 0;
+  }
+
+  .printable-meal+.printable-meal {
+    border-top: 1px dotted #dddddd;
+  }
+
+  .printable-meal-type {
+    font-size: 9pt;
+    font-weight: 600;
+  }
+
+  .printable-meal-name {
+    min-width: 0;
+    font-size: 10pt;
+    font-weight: 600;
+    overflow-wrap: anywhere;
   }
 }

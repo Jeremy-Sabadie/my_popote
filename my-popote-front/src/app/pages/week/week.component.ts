@@ -439,6 +439,19 @@ export class WeekComponent implements OnInit {
     this.days = this.buildDays(week);
   }
 
+  /**
+   * Ouvre l'impression du navigateur pour la semaine affichée.
+   * La feuille de style d'impression isolera le planning A4
+   * des boutons et des autres éléments de l'application.
+   */
+  printWeek(): void {
+    if (!this.week || this.loading) {
+      return;
+    }
+
+    window.print();
+  }
+
   private getPlanningWeekMonday(): string {
     const today = new Date();
     const day = today.getDay();
