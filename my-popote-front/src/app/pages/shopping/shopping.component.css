@@ -27,22 +27,6 @@
   opacity: 0.65;
 }
 
-.export-button {
-  min-height: 44px;
-  padding: 0.7rem 1rem;
-
-  border: 0;
-  border-radius: 0.75rem;
-
-  background: #315f44;
-  color: #ffffff;
-
-  font: inherit;
-  font-weight: 600;
-
-  cursor: pointer;
-}
-
 .shopping-list {
   display: grid;
   gap: 0.75rem;
@@ -54,12 +38,9 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-
   padding: 1rem;
-
   border: 1px solid #dedede;
   border-radius: 0.9rem;
-
   background: #ffffff;
 }
 
@@ -81,26 +62,46 @@
 .empty-state {
   margin-top: 1rem;
   padding: 1rem;
-
   border: 1px solid #dedede;
   border-radius: 0.9rem;
-
   background: #ffffff;
+}
+
+/* Actions de récupération et de partage, accessibles sur iPhone. */
+.share-section {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.65rem;
+  margin-top: 1.5rem;
+}
+
+.share-button {
+  min-height: 48px;
+  padding: 0.75rem 1rem;
+  border: 0;
+  border-radius: 0.75rem;
+  background: #315f44;
+  color: #ffffff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.share-button:hover,
+.share-button:focus-visible {
+  background: #244b35;
 }
 
 /*
  * Accès rapides vers les Drives.
- *
- * My Popote ne transmet aucune donnée :
- * on ouvre simplement le site de l'enseigne choisie.
+ * My Popote ne transmet aucune donnée aux enseignes :
+ * on ouvre simplement le site choisi.
  */
 .drive-section {
   margin-top: 1.5rem;
   padding: 1rem;
-
   border: 1px solid #dedede;
   border-radius: 0.9rem;
-
   background: #ffffff;
 }
 
@@ -127,18 +128,13 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-
   min-height: 44px;
   padding: 0.7rem 0.8rem;
-
   border: 1px solid #315f44;
   border-radius: 0.75rem;
-
   background: #ffffff;
   color: #315f44;
-
   box-sizing: border-box;
-
   font: inherit;
   font-size: 0.9rem;
   font-weight: 600;
@@ -159,5 +155,9 @@
     flex-direction: row;
     align-items: flex-end;
     justify-content: space-between;
+  }
+
+  .share-section {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }

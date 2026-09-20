@@ -20,8 +20,7 @@ export class ShoppingService {
   constructor(private readonly http: HttpClient) {}
 
   /**
-   * Génère la liste de courses correspondant
-   * au planning hebdomadaire choisi.
+   * Génère la liste de courses correspondant au planning choisi.
    */
   generateFromMealPlan(mealPlanId: number): Observable<ShoppingList> {
     return this.http.post<ShoppingList>(
@@ -40,8 +39,7 @@ export class ShoppingService {
   }
 
   /**
-   * Ajoute un produit saisi manuellement par l'utilisateur
-   * à une liste déjà générée.
+   * Ajoute un produit saisi manuellement.
    */
   addManualItem(
     shoppingListId: number,
@@ -50,6 +48,20 @@ export class ShoppingService {
     return this.http.post<ShoppingItem>(
       `${this.shoppingListsUrl}/${shoppingListId}/items`,
       item,
+    );
+  }
+
+  /**
+   * Demande à l'API d'envoyer la liste par e-mail via le SMTP configuré.
+   * La réponse 204 ne contient pas de corps.
+   */
+  sendShoppingListByEmail(
+    shoppingListId: number,
+    recipient: string,
+  ): Observable<void> {
+    return this.http.post<void>(
+      `${this.shoppingListsUrl}/${shoppingListId}/email`,
+      { recipient },
     );
   }
 }
