@@ -1,3 +1,4 @@
+
 package fr.mypopote.my_popote_api.shopping;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -20,6 +21,7 @@ import fr.mypopote.my_popote_api.planning.MealPlanRepository;
 import fr.mypopote.my_popote_api.planning.PlannedMealRepository;
 import fr.mypopote.my_popote_api.recipe.Ingredient;
 import fr.mypopote.my_popote_api.shopping.dto.ShoppingItemResponse;
+import fr.mypopote.my_popote_api.shopping.dto.ShoppingListHistoryResponse;
 import fr.mypopote.my_popote_api.shopping.dto.ShoppingListResponse;
 import fr.mypopote.my_popote_api.user.User;
 
@@ -52,6 +54,68 @@ class ShoppingListServiceTest {
             mealPlanRepository,
             plannedMealRepository
         );
+    }
+
+    /**
+     * Vérifie que l'historique est recherché pour l'utilisateur
+     * connecté et que les semaines sont correctement retournées.
+     *
+     * Le tri et le filtrage réels de la base devront être vérifiés
+     * séparément par un test du repository.
+     */
+    @Test
+    void shouldFindShoppingListHistoryForAuthenticatedUser() {
+
+        Long userId = 1L;
+
+        User user = new User(
+            "jeremy@example.com",
+            "hashed-password",
+            "Jérémy"
+        );
+
+        MealPlan recentMealPlan = new MealPlan(
+            user,
+            LocalDate.of(2026, 9, 14),
+            false,
+            null,
+            null
+        );
+
+        MealPlan olderMealPlan = new MealPlan(
+            user,
+            LocalDate.of(2026, 9, 7),
+            false,
+            null,
+            null
+        );
+
+        ShoppingList recentList = new ShoppingList(recentMealPlan);
+        ShoppingList olderList = new ShoppingList(olderMealPlan);
+
+        when(
+            shoppingListRepository
+                .findAllByMealPlanUserIdOrderByMealPlanWeekStartDateDescIdDesc(
+                    userId
+                )
+        ).thenReturn(List.of(recentList, olderList));
+
+        List<ShoppingListHistoryResponse> history =
+            shoppingListService.findAllByUserId(userId);
+
+        assertThat(history).hasSize(2);
+
+        assertThat(history)
+            .extracting(ShoppingListHistoryResponse::weekStartDate)
+            .containsExactly(
+                LocalDate.of(2026, 9, 14),
+                LocalDate.of(2026, 9, 7)
+            );
+
+        verify(shoppingListRepository)
+            .findAllByMealPlanUserIdOrderByMealPlanWeekStartDateDescIdDesc(
+                userId
+            );
     }
 
     /**

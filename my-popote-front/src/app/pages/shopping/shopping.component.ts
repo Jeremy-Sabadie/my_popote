@@ -1,9 +1,10 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 
 import { ShoppingService } from '../../core/services/shopping.service';
 import { ShoppingList } from '../../models/shopping-list.model';
+import { ShoppingListHistoryItem } from '../../models/shopping-list-history.model';
 
 @Component({
   selector: 'app-shopping',
@@ -14,25 +15,78 @@ import { ShoppingList } from '../../models/shopping-list.model';
 })
 export class ShoppingComponent implements OnInit {
   shoppingList: ShoppingList | null = null;
+  shoppingListHistory: ShoppingListHistoryItem[] = [];
 
-  loading = true;
+  loading = false;
+  loadingHistory = true;
   sendingEmail = false;
+
   errorMessage = '';
+  historyErrorMessage = '';
   emailMessage = '';
 
   constructor(
     private readonly route: ActivatedRoute,
+    private readonly router: Router,
     private readonly shoppingService: ShoppingService,
   ) {}
 
   ngOnInit(): void {
-    const listId = Number(this.route.snapshot.queryParamMap.get('listId'));
+    this.loadHistory();
 
-    if (!listId) {
-      this.loading = false;
-      this.errorMessage = 'Aucune liste de courses sélectionnée.';
-      return;
-    }
+    // Réagit aussi aux changements d'URL sans recréer le composant.
+    this.route.queryParamMap.subscribe((params) => {
+      const rawListId = params.get('listId');
+      const listId = rawListId === null ? null : Number(rawListId);
+
+      if (listId === null) {
+        this.shoppingList = null;
+        this.errorMessage = '';
+        this.emailMessage = '';
+        this.loading = false;
+        return;
+      }
+
+      if (!Number.isSafeInteger(listId) || listId <= 0) {
+        this.shoppingList = null;
+        this.loading = false;
+        this.errorMessage = 'Identifiant de liste de courses invalide.';
+        return;
+      }
+
+      this.loadShoppingList(listId);
+    });
+  }
+
+  /**
+   * Charge les semaines pour lesquelles une liste de courses existe.
+   */
+  private loadHistory(): void {
+    this.loadingHistory = true;
+    this.historyErrorMessage = '';
+
+    this.shoppingService.getShoppingLists().subscribe({
+      next: (history) => {
+        this.shoppingListHistory = history;
+        this.loadingHistory = false;
+      },
+      error: () => {
+        this.shoppingListHistory = [];
+        this.loadingHistory = false;
+        this.historyErrorMessage =
+          "Impossible de charger l'historique des listes de courses.";
+      },
+    });
+  }
+
+  /**
+   * Charge une liste appartenant à l'utilisateur connecté.
+   */
+  private loadShoppingList(listId: number): void {
+    this.loading = true;
+    this.shoppingList = null;
+    this.errorMessage = '';
+    this.emailMessage = '';
 
     this.shoppingService.getShoppingList(listId).subscribe({
       next: (shoppingList) => {
@@ -43,6 +97,28 @@ export class ShoppingComponent implements OnInit {
         this.loading = false;
         this.errorMessage = 'Impossible de charger la liste de courses.';
       },
+    });
+  }
+
+  /**
+   * Ouvre la liste choisie en conservant son identifiant dans l'URL.
+   */
+  openShoppingList(listId: number): void {
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { listId },
+      queryParamsHandling: 'merge',
+    });
+  }
+
+  /**
+   * Revient à la vue de l'historique.
+   */
+  showHistory(): void {
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { listId: null },
+      queryParamsHandling: 'merge',
     });
   }
 
@@ -134,4 +210,3 @@ export class ShoppingComponent implements OnInit {
       });
   }
 }
-
