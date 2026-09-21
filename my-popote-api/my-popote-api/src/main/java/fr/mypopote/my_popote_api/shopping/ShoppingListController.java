@@ -1,10 +1,14 @@
+
 package fr.mypopote.my_popote_api.shopping;
+
+import java.util.List;
 
 import fr.mypopote.my_popote_api.security.CurrentUserService;
 import fr.mypopote.my_popote_api.shopping.dto.ManualShoppingItemRequest;
 import fr.mypopote.my_popote_api.shopping.dto.ShoppingItemAlreadyOwnedRequest;
 import fr.mypopote.my_popote_api.shopping.dto.ShoppingItemResponse;
 import fr.mypopote.my_popote_api.shopping.dto.ShoppingItemUpdateRequest;
+import fr.mypopote.my_popote_api.shopping.dto.ShoppingListHistoryResponse;
 import fr.mypopote.my_popote_api.shopping.dto.ShoppingListResponse;
 import jakarta.validation.Valid;
 
@@ -39,6 +43,18 @@ public class ShoppingListController {
     }
 
     /**
+     * Retourne l'historique des listes de l'utilisateur connecté.
+     */
+    @GetMapping
+    public List<ShoppingListHistoryResponse> getShoppingLists(
+            @AuthenticationPrincipal Jwt jwt) {
+
+        Long userId = currentUserService.getUserId(jwt);
+
+        return shoppingListService.findAllByUserId(userId);
+    }
+
+    /**
      * Génère la liste de courses d'un planning.
      */
     @PostMapping("/meal-plans/{mealPlanId}")
@@ -46,13 +62,9 @@ public class ShoppingListController {
             @PathVariable Long mealPlanId,
             @AuthenticationPrincipal Jwt jwt) {
 
-        Long userId =
-            currentUserService.getUserId(jwt);
+        Long userId = currentUserService.getUserId(jwt);
 
-        return shoppingListService.generate(
-            mealPlanId,
-            userId
-        );
+        return shoppingListService.generate(mealPlanId, userId);
     }
 
     /**
@@ -63,8 +75,7 @@ public class ShoppingListController {
             @PathVariable Long shoppingListId,
             @AuthenticationPrincipal Jwt jwt) {
 
-        Long userId =
-            currentUserService.getUserId(jwt);
+        Long userId = currentUserService.getUserId(jwt);
 
         return shoppingListService.findByIdAndUserId(
             shoppingListId,
@@ -74,17 +85,13 @@ public class ShoppingListController {
 
     /**
      * Alias conservé pour les appels existants utilisant findById.
-     *
      * Il n'est pas exposé comme une seconde route HTTP.
      */
     public ShoppingListResponse findById(
             Jwt jwt,
             Long shoppingListId) {
 
-        return getShoppingList(
-            shoppingListId,
-            jwt
-        );
+        return getShoppingList(shoppingListId, jwt);
     }
 
     /**
@@ -96,8 +103,7 @@ public class ShoppingListController {
             @RequestBody ShoppingItemUpdateRequest request,
             @AuthenticationPrincipal Jwt jwt) {
 
-        Long userId =
-            currentUserService.getUserId(jwt);
+        Long userId = currentUserService.getUserId(jwt);
 
         return shoppingListService.updateChecked(
             shoppingItemId,
@@ -116,8 +122,7 @@ public class ShoppingListController {
             @RequestBody ShoppingItemAlreadyOwnedRequest request,
             @AuthenticationPrincipal Jwt jwt) {
 
-        Long userId =
-            currentUserService.getUserId(jwt);
+        Long userId = currentUserService.getUserId(jwt);
 
         return shoppingListService.updateAlreadyOwned(
             shoppingItemId,
@@ -135,8 +140,7 @@ public class ShoppingListController {
             @Valid @RequestBody ManualShoppingItemRequest request,
             @AuthenticationPrincipal Jwt jwt) {
 
-        Long userId =
-            currentUserService.getUserId(jwt);
+        Long userId = currentUserService.getUserId(jwt);
 
         return shoppingListService.addManualItem(
             shoppingListId,

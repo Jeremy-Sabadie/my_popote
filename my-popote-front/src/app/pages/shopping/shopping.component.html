@@ -6,73 +6,113 @@
     </div>
   </header>
 
-  <p *ngIf="loading">Chargement de la liste…</p>
+  <section class="history-section" aria-label="Historique des listes de courses">
+    <h2>Mes semaines</h2>
 
-  <p *ngIf="!loading && errorMessage" class="error-message">
-    {{ errorMessage }}
-  </p>
+    <p *ngIf="loadingHistory">Chargement des semaines…</p>
 
-  <div *ngIf="!loading && shoppingList && shoppingList.items.length === 0" class="empty-state">
-    Aucun article à acheter.
-  </div>
-
-  <div *ngIf="!loading && shoppingList && shoppingList.items.length > 0" class="shopping-list">
-    <article *ngFor="let item of shoppingList.items" class="shopping-item">
-      <div>
-        <strong>{{ item.ingredientName }}</strong>
-        <p>{{ item.quantity }} {{ item.unit }}</p>
-      </div>
-
-      <span *ngIf="item.manual" class="manual-badge">
-        Ajout manuel
-      </span>
-    </article>
-  </div>
-
-  <section *ngIf="!loading && shoppingList && shoppingList.items.length > 0" class="share-section"
-    aria-label="Récupérer ou partager la liste de courses">
-    <button type="button" class="share-button" (click)="exportTxt()">
-      Télécharger la liste (.txt)
-    </button>
-
-    <button type="button" class="share-button" (click)="shareByEmail()" [disabled]="sendingEmail">
-      {{ sendingEmail ? 'Envoi en cours…' : 'Envoyer la liste par e-mail' }}
-    </button>
-  </section>
-
-  <p *ngIf="emailMessage" role="status" aria-live="polite">
-    {{ emailMessage }}
-  </p>
-
-  <section *ngIf="!loading && shoppingList && shoppingList.items.length > 0" class="drive-section">
-    <h2>Commander mes courses</h2>
-
-    <p>
-      Ouvre ton Drive habituel avec ta liste My Popote à portée de main.
+    <p *ngIf="!loadingHistory && historyErrorMessage" class="error-message">
+      {{ historyErrorMessage }}
     </p>
 
-    <div class="drive-links">
-      <a class="drive-link" href="https://www.leclercdrive.fr/mobile/" target="_blank" rel="noopener noreferrer">
-        E.Leclerc Drive
-        <span aria-hidden="true">↗</span>
-      </a>
+    <p *ngIf="
+        !loadingHistory &&
+        !historyErrorMessage &&
+        shoppingListHistory.length === 0
+      " class="empty-state">
+      Aucune liste de courses enregistrée pour le moment.
+    </p>
 
-      <a class="drive-link" href="https://www.carrefour.fr/services/drive" target="_blank" rel="noopener noreferrer">
-        Carrefour Drive
-        <span aria-hidden="true">↗</span>
-      </a>
+    <div *ngIf="!loadingHistory && shoppingListHistory.length > 0" class="week-list">
+      <button *ngFor="let entry of shoppingListHistory" type="button" class="week-card"
+        [class.week-card-selected]="shoppingList?.id === entry.id" [attr.aria-pressed]="shoppingList?.id === entry.id"
+        (click)="openShoppingList(entry.id)">
+        <span class="week-card-content">
+          <span class="week-card-label">Semaine du</span>
+          <strong class="week-card-date">
+            {{ entry.weekStartDate | date: 'dd/MM/yyyy' }}
+          </strong>
+        </span>
 
-      <a class="drive-link" href="https://www.intermarche.com/enseigne/services/drive" target="_blank"
-        rel="noopener noreferrer">
-        Intermarché Drive
-        <span aria-hidden="true">↗</span>
-      </a>
-
-      <a class="drive-link" href="https://www.auchan.fr/parcours-de-courses-drive/ep-parcours-de-courses-drive"
-        target="_blank" rel="noopener noreferrer">
-        Auchan Drive
-        <span aria-hidden="true">↗</span>
-      </a>
+        <span class="week-card-arrow" aria-hidden="true">›</span>
+      </button>
     </div>
+  </section>
+
+  <section *ngIf="shoppingList || loading || errorMessage" class="selected-list-section"
+    aria-label="Liste sélectionnée">
+    <button *ngIf="shoppingList || errorMessage" type="button" class="back-button" (click)="showHistory()">
+      ← Revenir à l'historique
+    </button>
+
+    <p *ngIf="loading">Chargement de la liste…</p>
+
+    <p *ngIf="!loading && errorMessage" class="error-message">
+      {{ errorMessage }}
+    </p>
+
+    <div *ngIf="!loading && shoppingList && shoppingList.items.length === 0" class="empty-state">
+      Aucun article à acheter.
+    </div>
+
+    <div *ngIf="!loading && shoppingList && shoppingList.items.length > 0" class="shopping-list">
+      <article *ngFor="let item of shoppingList.items" class="shopping-item">
+        <div>
+          <strong>{{ item.ingredientName }}</strong>
+          <p>{{ item.quantity }} {{ item.unit }}</p>
+        </div>
+
+        <span *ngIf="item.manual" class="manual-badge">
+          Ajout manuel
+        </span>
+      </article>
+    </div>
+
+    <section *ngIf="!loading && shoppingList && shoppingList.items.length > 0" class="share-section"
+      aria-label="Récupérer ou partager la liste de courses">
+      <button type="button" class="share-button" (click)="exportTxt()">
+        Télécharger la liste (.txt)
+      </button>
+
+      <button type="button" class="share-button" (click)="shareByEmail()" [disabled]="sendingEmail">
+        {{ sendingEmail ? 'Envoi en cours…' : 'Envoyer la liste par e-mail' }}
+      </button>
+    </section>
+
+    <p *ngIf="emailMessage" role="status" aria-live="polite">
+      {{ emailMessage }}
+    </p>
+
+    <section *ngIf="!loading && shoppingList && shoppingList.items.length > 0" class="drive-section">
+      <h2>Commander mes courses</h2>
+
+      <p>
+        Ouvre ton Drive habituel avec ta liste My Popote à portée de main.
+      </p>
+
+      <div class="drive-links">
+        <a class="drive-link" href="https://www.leclercdrive.fr/mobile/" target="_blank" rel="noopener noreferrer">
+          E.Leclerc Drive
+          <span aria-hidden="true">↗</span>
+        </a>
+
+        <a class="drive-link" href="https://www.carrefour.fr/services/drive" target="_blank" rel="noopener noreferrer">
+          Carrefour Drive
+          <span aria-hidden="true">↗</span>
+        </a>
+
+        <a class="drive-link" href="https://www.intermarche.com/enseigne/services/drive" target="_blank"
+          rel="noopener noreferrer">
+          Intermarché Drive
+          <span aria-hidden="true">↗</span>
+        </a>
+
+        <a class="drive-link" href="https://www.auchan.fr/parcours-de-courses-drive/ep-parcours-de-courses-drive"
+          target="_blank" rel="noopener noreferrer">
+          Auchan Drive
+          <span aria-hidden="true">↗</span>
+        </a>
+      </div>
+    </section>
   </section>
 </section>

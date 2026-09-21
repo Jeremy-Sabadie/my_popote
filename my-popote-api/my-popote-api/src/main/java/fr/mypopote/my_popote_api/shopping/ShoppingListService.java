@@ -1,3 +1,4 @@
+
 package fr.mypopote.my_popote_api.shopping;
 
 import java.math.BigDecimal;
@@ -17,6 +18,7 @@ import fr.mypopote.my_popote_api.recipe.Ingredient;
 import fr.mypopote.my_popote_api.recipe.RecipeIngredient;
 import fr.mypopote.my_popote_api.shopping.dto.ManualShoppingItemRequest;
 import fr.mypopote.my_popote_api.shopping.dto.ShoppingItemResponse;
+import fr.mypopote.my_popote_api.shopping.dto.ShoppingListHistoryResponse;
 import fr.mypopote.my_popote_api.shopping.dto.ShoppingListResponse;
 
 /**
@@ -41,6 +43,29 @@ public class ShoppingListService {
         this.shoppingItemRepository = shoppingItemRepository;
         this.mealPlanRepository = mealPlanRepository;
         this.plannedMealRepository = plannedMealRepository;
+    }
+
+    /**
+     * Retourne les listes de l'utilisateur connecté,
+     * de la semaine la plus récente à la plus ancienne.
+     *
+     * Ne charge pas les articles : l'historique n'affiche
+     * que les informations nécessaires pour identifier une semaine.
+     */
+    public List<ShoppingListHistoryResponse> findAllByUserId(Long userId) {
+        return shoppingListRepository
+            .findAllByMealPlanUserIdOrderByMealPlanWeekStartDateDescIdDesc(
+                userId
+            )
+            .stream()
+            .map(shoppingList ->
+                new ShoppingListHistoryResponse(
+                    shoppingList.getId(),
+                    shoppingList.getMealPlan().getId(),
+                    shoppingList.getMealPlan().getWeekStartDate()
+                )
+            )
+            .toList();
     }
 
     /**

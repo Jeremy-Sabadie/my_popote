@@ -3,7 +3,11 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import { ShoppingItem, ShoppingList } from '../../models/shopping-list.model';
+import {
+  ShoppingItem,
+  ShoppingList,
+} from '../../models/shopping-list.model';
+import { ShoppingListHistoryItem } from '../../models/shopping-list-history.model';
 
 export interface ManualShoppingItemRequest {
   name: string;
@@ -15,13 +19,11 @@ export interface ManualShoppingItemRequest {
   providedIn: 'root',
 })
 export class ShoppingService {
-  private readonly shoppingListsUrl = `${environment.apiUrl}/api/shopping-lists`;
+  private readonly shoppingListsUrl =
+    `${environment.apiUrl}/api/shopping-lists`;
 
   constructor(private readonly http: HttpClient) {}
 
-  /**
-   * Génère la liste de courses correspondant au planning choisi.
-   */
   generateFromMealPlan(mealPlanId: number): Observable<ShoppingList> {
     return this.http.post<ShoppingList>(
       `${this.shoppingListsUrl}/meal-plans/${mealPlanId}`,
@@ -30,17 +32,20 @@ export class ShoppingService {
   }
 
   /**
-   * Recharge une liste de courses existante.
+   * Récupère les résumés des listes de courses de l'utilisateur connecté.
    */
+  getShoppingLists(): Observable<ShoppingListHistoryItem[]> {
+    return this.http.get<ShoppingListHistoryItem[]>(
+      this.shoppingListsUrl,
+    );
+  }
+
   getShoppingList(shoppingListId: number): Observable<ShoppingList> {
     return this.http.get<ShoppingList>(
       `${this.shoppingListsUrl}/${shoppingListId}`,
     );
   }
 
-  /**
-   * Ajoute un produit saisi manuellement.
-   */
   addManualItem(
     shoppingListId: number,
     item: ManualShoppingItemRequest,
@@ -51,10 +56,6 @@ export class ShoppingService {
     );
   }
 
-  /**
-   * Demande à l'API d'envoyer la liste par e-mail via le SMTP configuré.
-   * La réponse 204 ne contient pas de corps.
-   */
   sendShoppingListByEmail(
     shoppingListId: number,
     recipient: string,

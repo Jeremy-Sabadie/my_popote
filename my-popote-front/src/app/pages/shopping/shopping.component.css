@@ -27,6 +27,104 @@
   opacity: 0.65;
 }
 
+/* Historique : cartes compactes, distinctes des boutons de partage. */
+.history-section h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.2rem;
+}
+
+.week-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 0.65rem;
+}
+
+.week-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: min(100%, 230px);
+  min-height: 68px;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid #d9e2dc;
+  border-radius: 0.85rem;
+  background: #ffffff;
+  color: #26382e;
+  box-sizing: border-box;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.week-card:hover,
+.week-card:focus-visible {
+  border-color: #315f44;
+  background: #f2f7f3;
+}
+
+.week-card:focus-visible {
+  outline: 2px solid #315f44;
+  outline-offset: 2px;
+}
+
+.week-card-selected {
+  border-color: #315f44;
+  background: #edf5ef;
+}
+
+.week-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.week-card-label {
+  color: #63736a;
+  font-size: 0.8rem;
+}
+
+.week-card-date {
+  color: #26382e;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.week-card-arrow {
+  flex-shrink: 0;
+  color: #315f44;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.selected-list-section {
+  margin-top: 1.5rem;
+}
+
+.back-button {
+  min-height: 44px;
+  margin-bottom: 0.5rem;
+  padding: 0.5rem 0;
+  border: 0;
+  background: transparent;
+  color: #315f44;
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.back-button:hover {
+  text-decoration: underline;
+}
+
+.back-button:focus-visible {
+  outline: 2px solid #315f44;
+  outline-offset: 3px;
+}
+
 .shopping-list {
   display: grid;
   gap: 0.75rem;
