@@ -1,0 +1,52 @@
+services:
+  mariadb:
+    image: mariadb:11.8
+    restart: unless-stopped
+
+    environment:
+      MARIADB_DATABASE: my_popote
+      MARIADB_USER: ${DB_USERNAME}
+      MARIADB_PASSWORD: ${DB_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+
+    volumes:
+      # Volume Docker déjà créé sur le VPS.
+      - my-popote-mariadb-data:/var/lib/mysql
+
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ./my-popote-api/my-popote-api
+    restart: unless-stopped
+
+    env_file:
+      - .env.prod
+
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+
+    depends_on:
+      mariadb:
+        condition: service_healthy
+
+  front:
+    build:
+      context: ./my-popote-front
+    restart: unless-stopped
+
+    # Accessible uniquement depuis le VPS pour l'instant.
+    # Nous ajouterons ensuite l'accès public HTTPS.
+    ports:
+      - "127.0.0.1:8081:80"
+
+    depends_on:
+      - api
+
+volumes:
+  my-popote-mariadb-data:
+    external: true
