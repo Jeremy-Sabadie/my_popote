@@ -763,7 +763,7 @@ export class RecipesComponent implements OnInit {
             title:
               'Suppression impossible',
             text:
-              'La recette n’a pas pu être supprimée pour le moment.',
+              ' car elle apparait dans une semaine déjà validée.',
             icon: 'error',
             confirmButtonText: 'Fermer',
           });

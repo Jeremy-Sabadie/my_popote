@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Component } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -49,10 +50,37 @@ export class SignInComponent {
         this.loading = false;
         void this.router.navigate(['/home']);
       },
-      error: () => {
+      error: (error: unknown) => {
         this.loading = false;
-        this.errorMessage = 'Adresse e-mail ou mot de passe incorrect.';
+        this.errorMessage = this.getLoginErrorMessage(error);
       },
     });
+  }
+
+  /**
+   * Traduit les erreurs HTTP en messages compréhensibles.
+   * Ne présente pas systématiquement une panne du serveur
+   * comme une erreur de mot de passe.
+   */
+  private getLoginErrorMessage(error: unknown): string {
+    if (!(error instanceof HttpErrorResponse)) {
+      return 'La connexion a échoué. Veuillez réessayer.';
+    }
+
+    switch (error.status) {
+      case 0:
+        return 'Impossible de joindre le serveur. Vérifiez votre connexion Internet et réessayez.';
+      case 400:
+      case 401:
+        return 'Adresse e-mail ou mot de passe incorrect.';
+      case 429:
+        return 'Trop de tentatives de connexion. Patientez quelques instants avant de réessayer.';
+      default:
+        if (error.status >= 500) {
+          return 'Le service rencontre un problème temporaire. Réessayez dans quelques instants.';
+        }
+
+        return 'La connexion a échoué. Veuillez réessayer.';
+    }
   }
 }
