@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Component } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -18,6 +19,7 @@ import { AuthService } from '../../core/services/auth.service';
 export class SignUpComponent {
   loading = false;
   errorMessage = '';
+  emailAlreadyUsed = false;
 
   readonly form;
 
@@ -30,6 +32,11 @@ export class SignUpComponent {
       firstName: ['', Validators.required],
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(8)]],
+    });
+
+    // Efface l'erreur de doublon lorsque l'utilisateur corrige son adresse.
+    this.form.controls.email.valueChanges.subscribe(() => {
+      this.emailAlreadyUsed = false;
     });
   }
 
@@ -44,16 +51,42 @@ export class SignUpComponent {
 
     this.loading = true;
     this.errorMessage = '';
+    this.emailAlreadyUsed = false;
 
     this.authService.register(this.form.getRawValue()).subscribe({
       next: () => {
         this.loading = false;
         void this.router.navigate(['/home']);
       },
-      error: () => {
+      error: (error: unknown) => {
         this.loading = false;
-        this.errorMessage =
-          'Impossible de créer le compte avec ces informations.';
+
+        if (!(error instanceof HttpErrorResponse)) {
+          this.errorMessage = 'La création du compte a échoué. Réessayez.';
+          return;
+        }
+
+        // Comportement actuel de l'API : 404 + ce message précis.
+        if (
+          error.status === 404 &&
+          error.error?.message === 'Email already in use'
+        ) {
+          this.emailAlreadyUsed = true;
+          return;
+        }
+
+        if (error.status === 0) {
+          this.errorMessage =
+            'Impossible de joindre le serveur. Vérifiez votre connexion Internet et réessayez.';
+        } else if (error.status === 400) {
+          this.errorMessage =
+            'Certaines informations sont invalides. Vérifiez les champs du formulaire.';
+        } else if (error.status >= 500) {
+          this.errorMessage =
+            'Le service rencontre un problème temporaire. Réessayez dans quelques instants.';
+        } else {
+          this.errorMessage = 'La création du compte a échoué. Réessayez.';
+        }
       },
     });
   }
