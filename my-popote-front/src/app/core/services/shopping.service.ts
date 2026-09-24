@@ -3,10 +3,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import {
-  ShoppingItem,
-  ShoppingList,
-} from '../../models/shopping-list.model';
+import { ShoppingItem, ShoppingList } from '../../models/shopping-list.model';
 import { ShoppingListHistoryItem } from '../../models/shopping-list-history.model';
 
 export interface ManualShoppingItemRequest {
@@ -19,8 +16,7 @@ export interface ManualShoppingItemRequest {
   providedIn: 'root',
 })
 export class ShoppingService {
-  private readonly shoppingListsUrl =
-    `${environment.apiUrl}/api/shopping-lists`;
+  private readonly shoppingListsUrl = `${environment.apiUrl}/api/shopping-lists`;
 
   constructor(private readonly http: HttpClient) {}
 
@@ -35,9 +31,7 @@ export class ShoppingService {
    * Récupère les résumés des listes de courses de l'utilisateur connecté.
    */
   getShoppingLists(): Observable<ShoppingListHistoryItem[]> {
-    return this.http.get<ShoppingListHistoryItem[]>(
-      this.shoppingListsUrl,
-    );
+    return this.http.get<ShoppingListHistoryItem[]>(this.shoppingListsUrl);
   }
 
   getShoppingList(shoppingListId: number): Observable<ShoppingList> {
@@ -53,6 +47,19 @@ export class ShoppingService {
     return this.http.post<ShoppingItem>(
       `${this.shoppingListsUrl}/${shoppingListId}/items`,
       item,
+    );
+  }
+
+  /**
+   * Indique si un article est déjà présent à la maison.
+   */
+  updateAlreadyOwned(
+    shoppingItemId: number,
+    alreadyOwned: boolean,
+  ): Observable<ShoppingItem> {
+    return this.http.patch<ShoppingItem>(
+      `${this.shoppingListsUrl}/items/${shoppingItemId}/already-owned`,
+      { alreadyOwned },
     );
   }
 

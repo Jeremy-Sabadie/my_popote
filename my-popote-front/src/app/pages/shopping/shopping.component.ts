@@ -3,7 +3,7 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 
 import { ShoppingService } from '../../core/services/shopping.service';
-import { ShoppingList } from '../../models/shopping-list.model';
+import { ShoppingItem, ShoppingList } from '../../models/shopping-list.model';
 import { ShoppingListHistoryItem } from '../../models/shopping-list-history.model';
 
 @Component({
@@ -20,6 +20,8 @@ export class ShoppingComponent implements OnInit {
   loading = false;
   loadingHistory = true;
   sendingEmail = false;
+
+  updatingItemIds = new Set<number>();
 
   errorMessage = '';
   historyErrorMessage = '';
@@ -123,6 +125,41 @@ export class ShoppingComponent implements OnInit {
   }
 
   /**
+   * Indique si une mise à jour est en cours pour l'article.
+   */
+  isUpdatingItem(itemId: number): boolean {
+    return this.updatingItemIds.has(itemId);
+  }
+
+  /**
+   * Marque ou démarque un article comme déjà présent à la maison.
+   */
+  updateAlreadyOwned(item: ShoppingItem, alreadyOwned: boolean): void {
+    if (!this.shoppingList || this.isUpdatingItem(item.id)) {
+      return;
+    }
+
+    this.updatingItemIds.add(item.id);
+    this.errorMessage = '';
+
+    this.shoppingService.updateAlreadyOwned(item.id, alreadyOwned).subscribe({
+      next: () => {
+        this.updatingItemIds.delete(item.id);
+
+        // On recharge la liste afin de rester aligné avec l'état enregistré
+        // par l'API et avec sa séparation items / alreadyOwnedItems.
+        if (this.shoppingList) {
+          this.loadShoppingList(this.shoppingList.id);
+        }
+      },
+      error: () => {
+        this.updatingItemIds.delete(item.id);
+        this.errorMessage = "Impossible de modifier l'état de cet article.";
+      },
+    });
+  }
+
+  /**
    * Prépare le contenu du fichier texte à télécharger.
    */
   private buildShoppingListText(): string {
@@ -140,7 +177,7 @@ export class ShoppingComponent implements OnInit {
   }
 
   /**
-   * Télécharge la liste au format texte.
+   * Télécharge uniquement les articles qu'il reste réellement à acheter.
    */
   exportTxt(): void {
     if (!this.shoppingList || this.shoppingList.items.length === 0) {
@@ -166,7 +203,6 @@ export class ShoppingComponent implements OnInit {
 
   /**
    * Demande l'adresse du destinataire, puis confie l'envoi à l'API.
-   * Aucun message de succès n'est affiché avant la réponse du serveur.
    */
   shareByEmail(): void {
     if (
