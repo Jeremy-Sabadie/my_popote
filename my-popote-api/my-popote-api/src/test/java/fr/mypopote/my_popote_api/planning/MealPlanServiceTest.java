@@ -404,6 +404,7 @@ class MealPlanServiceTest {
             new BigDecimal("5.00"),
             null
         );
+
         autumnRecipe.addSeason("AUTUMN");
 
         Recipe winterRecipe = new Recipe(
@@ -414,9 +415,9 @@ class MealPlanServiceTest {
             new BigDecimal("7.00"),
             null
         );
+
         winterRecipe.addSeason("WINTER");
 
-        // Une semaine de septembre doit pouvoir utiliser la saison choisie.
         GenerateMealPlanRequest request = new GenerateMealPlanRequest(
             monday,
             false,
@@ -428,20 +429,28 @@ class MealPlanServiceTest {
 
         when(recipeRepository.findByIdAndUserId(10L, userId))
             .thenReturn(Optional.of(autumnRecipe));
+
         when(recipeRepository.findByIdAndUserId(20L, userId))
             .thenReturn(Optional.of(winterRecipe));
+
         when(mealPlanRepository.findByUserIdAndWeekStartDate(userId, monday))
             .thenReturn(Optional.empty());
+
         when(mealPlanRepository.save(any(MealPlan.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
+
         when(plannedMealRepository.saveAll(anyList()))
             .thenAnswer(invocation -> invocation.getArgument(0));
 
-        MealPlanResponse result = mealPlanService.generate(userId, request);
+        MealPlanResponse result =
+            mealPlanService.generate(userId, request);
 
         assertThat(result.meals()).hasSize(10);
-        assertThat(result.meals()).allSatisfy(meal ->
-            assertThat(meal.recipeName()).isEqualTo("Tartiflette")
+
+        assertThat(result.meals()).allSatisfy(
+            meal ->
+                assertThat(meal.recipeName())
+                    .isEqualTo("Tartiflette")
         );
     }
 
@@ -586,6 +595,159 @@ class MealPlanServiceTest {
     }
 
     @Test
+    void shouldRotateRecipesWhenSeveralRecipesMatchPreferredTags() {
+        Long userId = 1L;
+
+        LocalDate monday =
+            LocalDate.of(2026, 9, 21);
+
+        User user = new User(
+            "jeremy@example.com",
+            "hashed-password",
+            "Jérémy"
+        );
+
+        Tag preferredTag =
+            mock(Tag.class);
+
+        when(
+            preferredTag.getId()
+        ).thenReturn(
+            100L
+        );
+
+        Recipe firstRecipe =
+            new Recipe(
+                user,
+                "Poulet riz",
+                "MEAT",
+                2,
+                new BigDecimal("5.00"),
+                null
+            );
+
+        firstRecipe.addTag(
+            preferredTag
+        );
+
+        Recipe secondRecipe =
+            new Recipe(
+                user,
+                "Bowl patates",
+                "MEAT",
+                2,
+                new BigDecimal("4.00"),
+                null
+            );
+
+        secondRecipe.addTag(
+            preferredTag
+        );
+
+        Recipe thirdRecipe =
+            new Recipe(
+                user,
+                "Pâtes poulet",
+                "MEAT",
+                2,
+                new BigDecimal("4.50"),
+                null
+            );
+
+        thirdRecipe.addTag(
+            preferredTag
+        );
+
+        GenerateMealPlanRequest request =
+            new GenerateMealPlanRequest(
+                monday,
+                false,
+                null,
+                List.of(
+                    10L,
+                    20L,
+                    30L
+                ),
+                List.of(
+                    100L
+                )
+            );
+
+        when(
+            recipeRepository.findByIdAndUserId(
+                10L,
+                userId
+            )
+        ).thenReturn(
+            Optional.of(firstRecipe)
+        );
+
+        when(
+            recipeRepository.findByIdAndUserId(
+                20L,
+                userId
+            )
+        ).thenReturn(
+            Optional.of(secondRecipe)
+        );
+
+        when(
+            recipeRepository.findByIdAndUserId(
+                30L,
+                userId
+            )
+        ).thenReturn(
+            Optional.of(thirdRecipe)
+        );
+
+        when(
+            mealPlanRepository
+                .findByUserIdAndWeekStartDate(
+                    userId,
+                    monday
+                )
+        ).thenReturn(
+            Optional.empty()
+        );
+
+        when(
+            mealPlanRepository.save(
+                any(MealPlan.class)
+            )
+        ).thenAnswer(
+            invocation ->
+                invocation.getArgument(0)
+        );
+
+        when(
+            plannedMealRepository.saveAll(
+                anyList()
+            )
+        ).thenAnswer(
+            invocation ->
+                invocation.getArgument(0)
+        );
+
+        MealPlanResponse result =
+            mealPlanService.generate(
+                userId,
+                request
+            );
+
+        assertThat(
+            result.meals()
+        ).hasSize(10);
+
+        assertThat(
+            result.meals()
+                .stream()
+                .map(meal -> meal.recipeName())
+                .distinct()
+                .count()
+        ).isEqualTo(3);
+    }
+
+    @Test
     void shouldRespectBudgetWhileKeepingPreferredRecipesWhenPossible() {
         Long userId = 1L;
 
@@ -598,11 +760,6 @@ class MealPlanServiceTest {
             "Jérémy"
         );
 
-        /*
-         * Cette recette correspond à la préférence choisie,
-         * mais elle ne peut pas remplir seule toute la semaine
-         * sans dépasser le budget.
-         */
         Recipe preferredRecipe =
             new Recipe(
                 user,
@@ -630,11 +787,6 @@ class MealPlanServiceTest {
             preferredTag
         );
 
-        /*
-         * Cette recette moins chère permet de compléter
-         * la semaine lorsque le budget ne permet pas
-         * d'utiliser uniquement la recette préférée.
-         */
         Recipe budgetRecipe =
             new Recipe(
                 user,
@@ -719,21 +871,12 @@ class MealPlanServiceTest {
                 request
             );
 
-        /*
-         * Le budget devient une vraie contrainte
-         * de la proposition générée.
-         */
         assertThat(
             result.estimatedCost()
         ).isLessThanOrEqualTo(
             new BigDecimal("40.00")
         );
 
-        /*
-         * Les préférences restent prioritaires :
-         * on conserve autant que possible
-         * des recettes correspondant aux tags choisis.
-         */
         assertThat(
             result.meals()
                 .stream()
@@ -748,10 +891,6 @@ class MealPlanServiceTest {
             0
         );
 
-        /*
-         * L'alternative économique doit pouvoir être utilisée
-         * pour éviter le dépassement du budget.
-         */
         assertThat(
             result.meals()
                 .stream()
