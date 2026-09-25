@@ -394,10 +394,105 @@ export class RecipesComponent implements OnInit {
     );
   }
 
+  /**
+   * Toutes les unités avancent par entier,
+   * sauf Pièce(s) qui avance par demi-unité.
+   */
+  quantityStep(
+    unit: string | null | undefined,
+  ): number {
+    return unit === 'unité' ? 0.5 : 1;
+  }
+
+  /**
+   * Normalise une quantité lorsque l'utilisateur
+   * quitte le champ ou change l'unité.
+   */
+  normalizeIngredientQuantity(
+    index: number,
+  ): void {
+    const ingredient =
+      this.ingredients.at(index);
+
+    const quantityControl =
+      ingredient.get('quantity');
+
+    const unit =
+      ingredient.get('unit')?.value;
+
+    if (
+      !quantityControl ||
+      quantityControl.value === null ||
+      quantityControl.value === ''
+    ) {
+      return;
+    }
+
+    const quantity =
+      Number(quantityControl.value);
+
+    if (!Number.isFinite(quantity)) {
+      return;
+    }
+
+    quantityControl.setValue(
+      this.normalizeQuantity(
+        quantity,
+        unit,
+      ),
+      {
+        emitEvent: false,
+      },
+    );
+  }
+
+  /**
+   * Toutes les unités sont arrondies à l'entier.
+   *
+   * Seule l'unité technique "unité",
+   * affichée "Pièce(s)", accepte les demi-unités.
+   *
+   * Exemples :
+   * 36.01 g -> 36 g
+   * 36.7 kg -> 37 kg
+   * 2.01 Pièce(s) -> 2.5 Pièce(s)
+   * 2.5 Pièce(s) -> 2.5 Pièce(s)
+   */
+  private normalizeQuantity(
+    quantity: number,
+    unit: string | null | undefined,
+  ): number {
+    if (!Number.isFinite(quantity)) {
+      return quantity;
+    }
+
+    if (unit === 'unité') {
+      return Math.ceil(quantity * 2) / 2;
+    }
+
+    return Math.round(quantity);
+  }
+
+  /**
+   * Sécurité avant enregistrement :
+   * toutes les quantités du formulaire sont normalisées.
+   */
+  private normalizeAllIngredientQuantities(): void {
+    for (
+      let index = 0;
+      index < this.ingredients.length;
+      index++
+    ) {
+      this.normalizeIngredientQuantity(index);
+    }
+  }
+
   async saveRecipe(): Promise<void> {
     if (this.saving) {
       return;
     }
+
+    this.normalizeAllIngredientQuantities();
 
     if (this.recipeForm.invalid) {
       this.recipeForm.markAllAsTouched();
@@ -474,8 +569,13 @@ export class RecipesComponent implements OnInit {
           (ingredient) => ({
             ingredientName:
               ingredient.ingredientName.trim(),
+
             quantity:
-              ingredient.quantity,
+              this.normalizeQuantity(
+                ingredient.quantity,
+                ingredient.unit,
+              ),
+
             unit:
               ingredient.unit.trim(),
           }),
