@@ -31,17 +31,29 @@
 
       <div>
 
-        <h2 id="filters-title">Filtrer</h2>
+        <h2 id="filters-title">Rechercher et filtrer</h2>
 
         <p>
-          Combinez plusieurs tags pour préciser votre recherche.
+          Recherchez par nom de recette ou ingrédient et combinez avec les tags.
         </p>
 
       </div>
 
-      <button *ngIf="selectedTagIds.size > 0" type="button" class="clear-button" (click)="clearFilters()">
+      <button *ngIf="selectedTagIds.size > 0 || searchTerm" type="button" class="clear-button" (click)="clearFilters()">
         Effacer
       </button>
+
+    </div>
+
+
+    <div class="field">
+
+      <label for="recipe-search">
+        Rechercher
+      </label>
+
+      <input id="recipe-search" type="search" [value]="searchTerm" placeholder="Ex. poulet, riz, curry…"
+        autocomplete="off" (input)="onSearchTermChange($any($event.target).value)" />
 
     </div>
 
@@ -71,16 +83,16 @@
   <div *ngIf="
       !loading &&
       !errorMessage &&
-      recipes.length === 0
+      filteredRecipes.length === 0
     " class="state-card">
 
     <h2>Aucune recette trouvée</h2>
 
-    <p *ngIf="selectedTagIds.size > 0">
-      Retirez éventuellement un filtre pour élargir les résultats.
+    <p *ngIf="searchTerm || selectedTagIds.size > 0">
+      Essayez une autre recherche ou retirez un filtre.
     </p>
 
-    <p *ngIf="selectedTagIds.size === 0">
+    <p *ngIf="!searchTerm && selectedTagIds.size === 0">
       Ajoutez votre première recette pour commencer votre bibliothèque.
     </p>
 
@@ -90,10 +102,10 @@
   <div *ngIf="
       !loading &&
       !errorMessage &&
-      recipes.length > 0
+      filteredRecipes.length > 0
     " class="recipe-grid">
 
-    <article *ngFor="let recipe of recipes" class="recipe-card">
+    <article *ngFor="let recipe of filteredRecipes" class="recipe-card">
 
       <div class="recipe-card-header">
 
@@ -297,13 +309,11 @@
 
         <button type="button" class="secondary-button" [disabled]="downloadingRecipe"
           (click)="downloadRecipe(selectedRecipe)">
-
           {{
           downloadingRecipe
           ? 'Téléchargement…'
           : 'Télécharger la recette'
           }}
-
         </button>
 
 
