@@ -290,6 +290,11 @@
 
       <footer class="modal-footer">
 
+        <button type="button" class="secondary-button" [disabled]="downloadingRecipe" (click)="closeModal()">
+          Fermer
+        </button>
+
+
         <button type="button" class="secondary-button" [disabled]="downloadingRecipe"
           (click)="downloadRecipe(selectedRecipe)">
 
