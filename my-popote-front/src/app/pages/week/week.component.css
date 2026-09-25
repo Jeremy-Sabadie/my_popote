@@ -87,6 +87,91 @@
   color: #9d2525;
 }
 
+
+/*
+ * Navigation entre les semaines.
+ *
+ * La présentation reprend volontairement celle de la page Courses :
+ * grandes cartes faciles à utiliser sur mobile et au pouce.
+ */
+
+.weeks-section {
+  margin-bottom: 1.5rem;
+}
+
+.weeks-section h2 {
+  margin: 0 0 1rem;
+  font-size: 1.45rem;
+}
+
+.weeks-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+.week-history-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+
+  width: 100%;
+  min-height: 88px;
+  padding: 1rem 1.25rem;
+
+  border: 1px solid #d6dfd9;
+  border-radius: 1rem;
+
+  background: #ffffff;
+  color: inherit;
+
+  font: inherit;
+  text-align: left;
+
+  cursor: pointer;
+}
+
+.week-history-card:hover {
+  border-color: #315f44;
+}
+
+.week-history-card.selected {
+  border-color: #315f44;
+  background: #eef5f0;
+}
+
+.week-history-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.week-history-label {
+  font-size: 0.95rem;
+  font-weight: 400;
+  opacity: 0.7;
+}
+
+.week-history-content strong {
+  font-size: 1.15rem;
+  line-height: 1.2;
+}
+
+.week-history-arrow {
+  flex-shrink: 0;
+  color: #315f44;
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.history-loading {
+  margin: 0 0 1.5rem;
+  opacity: 0.7;
+}
+
+
 .preferences-card {
   margin-bottom: 1.25rem;
   padding: 1rem;
@@ -155,9 +240,11 @@
   opacity: 0.7;
 }
 
+
 /*
  * Réglage du budget souhaité pour la semaine.
  */
+
 .budget-preference {
   margin-top: 1.25rem;
   padding-top: 1rem;
@@ -290,6 +377,7 @@
   margin-top: 1.5rem;
 }
 
+
 /*
  * Produits ajoutés manuellement avant la génération
  * de la liste de courses.
@@ -297,6 +385,7 @@
  * L'affichage est volontairement pensé mobile-first :
  * les champs restent faciles à utiliser au pouce.
  */
+
 .manual-shopping {
   margin-bottom: 1rem;
   padding: 1rem;
@@ -351,10 +440,12 @@
   outline-offset: 1px;
 }
 
+
 /*
  * Action secondaire volontairement compacte :
  * elle ne doit pas concurrencer "Valider ma semaine".
  */
+
 .manual-shopping-form .secondary-button {
   grid-column: 1 / -1;
   justify-self: end;
@@ -408,53 +499,19 @@
   min-height: 52px;
 }
 
-.history-section {
-  margin-top: 2rem;
-}
-
-.history-section h2 {
-  margin-bottom: 1rem;
-  font-size: 1.25rem;
-}
-
-.history-empty {
-  opacity: 0.7;
-}
-
-.history-list {
-  display: grid;
-  gap: 0.75rem;
-}
-
-.history-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  width: 100%;
-  min-height: 56px;
-  padding: 0.9rem 1rem;
-  border: 1px solid #dedede;
-  border-radius: 0.8rem;
-  background: #ffffff;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.history-card span {
-  opacity: 0.7;
-}
 
 /*
  * Le planning imprimable existe dans le HTML,
  * mais ne doit pas apparaître dans l'interface habituelle.
  */
+
 .printable-week {
   display: none;
 }
 
+
 @media (min-width: 640px) {
+
   .week-page {
     padding: 1.5rem;
   }
@@ -465,12 +522,23 @@
     justify-content: space-between;
   }
 
+  /*
+   * Comme dans Courses :
+   * deux cartes par ligne lorsque l'espace le permet.
+   */
+  .weeks-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.85rem;
+  }
+
   .week-toolbar {
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
   }
+
 }
+
 
 /*
  * Impression du menu hebdomadaire.
@@ -478,7 +546,9 @@
  * Le navigateur permet d'imprimer sur papier ou
  * d'enregistrer le document au format PDF.
  */
+
 @media print {
+
   @page {
     size: A4 portrait;
     margin: 12mm;
@@ -505,14 +575,16 @@
    * On retire les éléments interactifs et les informations
    * qui n'appartiennent pas au menu à afficher sur le frigo.
    */
+
   .week-header,
+  .weeks-section,
+  .history-loading,
   .state-card,
   .preferences-card,
   .week-toolbar,
   .current-week>.error-message,
   .days,
-  .week-validation,
-  .history-section {
+  .week-validation {
     display: none !important;
   }
 
@@ -601,4 +673,5 @@
     font-weight: 600;
     overflow-wrap: anywhere;
   }
+
 }

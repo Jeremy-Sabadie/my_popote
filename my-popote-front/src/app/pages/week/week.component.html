@@ -1,6 +1,9 @@
 <section class="week-page">
+
   <header class="week-header">
+
     <div>
+
       <p class="eyebrow">
         Mon planning
       </p>
@@ -8,32 +11,141 @@
       <h1>
         Ma semaine
       </h1>
+
     </div>
 
+
     <p *ngIf="week" class="week-cost">
+
       Coût estimé :
+
       <strong>
-        {{ week.estimatedCost ?? 0 | number: '1.2-2' }}
-        €
+        {{ week.estimatedCost ?? 0 | number: '1.2-2' }} €
       </strong>
+
     </p>
+
   </header>
+
+
+  <!--
+    Navigation visuelle entre les semaines.
+
+    La semaine courante et les semaines précédentes sont
+    regroupées au même endroit pour retrouver le fonctionnement
+    déjà utilisé dans la page Courses.
+  -->
+
+  <section *ngIf="!historyLoading && (week || history.length > 0)" class="weeks-section" aria-labelledby="weeks-title">
+
+    <h2 id="weeks-title">
+      Mes semaines
+    </h2>
+
+
+    <div class="weeks-list">
+
+      <button *ngIf="viewingCurrentWeek && week" type="button" class="week-history-card selected" aria-current="true">
+
+        <span class="week-history-content">
+
+          <span class="week-history-label">
+            Semaine du
+          </span>
+
+          <strong>
+            {{ weekLabel(week.weekStartDate) }}
+          </strong>
+
+        </span>
+
+
+        <span class="week-history-arrow" aria-hidden="true">
+          ›
+        </span>
+
+      </button>
+
+
+      <button *ngIf="!viewingCurrentWeek" type="button" class="week-history-card" (click)="viewCurrentWeek()">
+
+        <span class="week-history-content">
+
+          <span class="week-history-label">
+            Semaine du
+          </span>
+
+          <strong>
+            {{ weekLabel(weekStartDate) }}
+          </strong>
+
+        </span>
+
+
+        <span class="week-history-arrow" aria-hidden="true">
+          ›
+        </span>
+
+      </button>
+
+
+      <button *ngFor="let historicalWeek of history" type="button" class="week-history-card" [class.selected]="
+          week?.id === historicalWeek.id
+        " [attr.aria-current]="
+          week?.id === historicalWeek.id
+            ? 'true'
+            : null
+        " (click)="viewHistoryWeek(historicalWeek)">
+
+        <span class="week-history-content">
+
+          <span class="week-history-label">
+            Semaine du
+          </span>
+
+          <strong>
+            {{ weekLabel(historicalWeek.weekStartDate) }}
+          </strong>
+
+        </span>
+
+
+        <span class="week-history-arrow" aria-hidden="true">
+          ›
+        </span>
+
+      </button>
+
+    </div>
+
+  </section>
+
+
+  <p *ngIf="historyLoading" class="history-loading">
+    Chargement de l'historique…
+  </p>
+
 
   <div *ngIf="loading" class="state-card">
     Chargement du planning…
   </div>
 
+
   <div *ngIf="!loading && errorMessage" class="state-card state-card-error">
     {{ errorMessage }}
   </div>
+
 
   <section *ngIf="
       !loading &&
       !errorMessage &&
       (!week || viewingCurrentWeek)
     " class="preferences-card" aria-labelledby="preferences-title">
+
     <div class="preferences-header">
+
       <div>
+
         <h2 id="preferences-title">
           Préférences pour cette semaine
         </h2>
@@ -42,7 +154,9 @@
           Choisissez ce que My Popote doit privilégier.
           Vous pouvez sélectionner plusieurs critères.
         </p>
+
       </div>
+
 
       <button *ngIf="
           selectedPreferredTagIds.size > 0 ||
@@ -50,43 +164,56 @@
         " type="button" class="clear-preferences-button" (click)="clearPreferences()">
         Effacer
       </button>
+
     </div>
 
+
     <div class="budget-preference">
+
       <label for="preferred-season">
         Saison des recettes à privilégier
       </label>
 
       <select id="preferred-season" name="preferredSeason" [(ngModel)]="selectedPreferredSeason">
+
         <option *ngFor="let season of seasonOptions" [ngValue]="season.value">
           {{ season.label }}
         </option>
+
       </select>
+
 
       <p class="preferences-info">
         En mode automatique, My Popote utilise
         la saison correspondant à la date de la semaine.
       </p>
+
     </div>
+
 
     <p *ngIf="preferencesLoading" class="preferences-info">
       Chargement des préférences…
     </p>
 
+
     <div *ngIf="
         !preferencesLoading &&
         preferenceTags.length > 0
       " class="preference-tags">
+
       <button *ngFor="let tag of preferenceTags" type="button" class="preference-tag"
         [class.selected]="isPreferredTagSelected(tag.id)" [attr.aria-pressed]="isPreferredTagSelected(tag.id)"
         (click)="togglePreferredTag(tag.id)">
         {{ tag.name }}
       </button>
+
     </div>
+
 
     <p *ngIf="preferencesErrorMessage" class="error-message">
       {{ preferencesErrorMessage }}
     </p>
+
 
     <p *ngIf="
         !preferencesLoading &&
@@ -99,8 +226,11 @@
       les recettes adaptées à la saison.
     </p>
 
+
     <div class="budget-preference">
+
       <div class="budget-header">
+
         <label for="weekly-budget">
           Budget maximum de la semaine
         </label>
@@ -108,15 +238,22 @@
         <strong>
           {{ weeklyMaxBudget }} €
         </strong>
+
       </div>
+
 
       <input id="weekly-budget" type="range" min="20" max="150" step="5" [(ngModel)]="weeklyMaxBudget" />
 
+
       <div class="budget-scale">
+
         <span>20 €</span>
         <span>150 €</span>
+
       </div>
+
     </div>
+
 
     <button *ngIf="!preferencesLoading" type="button" class="primary-button generate-preferences-button"
       [disabled]="generating" (click)="generateWeek()">
@@ -129,16 +266,20 @@
       }}
     </button>
 
+
     <p *ngIf="generationErrorMessage" class="error-message">
       {{ generationErrorMessage }}
     </p>
+
   </section>
+
 
   <div *ngIf="
       !loading &&
       !errorMessage &&
       !week
     " class="state-card empty-state">
+
     <h2>
       Aucun planning cette semaine
     </h2>
@@ -147,51 +288,72 @@
       Choisis tes préférences ci-dessus,
       puis génère ta semaine.
     </p>
+
   </div>
 
+
   <div *ngIf="!loading && week" class="current-week">
+
     <div class="week-toolbar">
+
       <p>
+
         Semaine du
+
         <strong>
           {{ weekLabel(week.weekStartDate) }}
         </strong>
+
       </p>
+
 
       <button type="button" class="secondary-button print-week-button" data-testid="print-week-button"
         (click)="printWeek()">
         Imprimer mon planning
       </button>
 
+
       <button *ngIf="!viewingCurrentWeek" type="button" class="secondary-button" (click)="viewCurrentWeek()">
         Revenir à cette semaine
       </button>
+
     </div>
+
 
     <p *ngIf="replacementErrorMessage" class="error-message">
       {{ replacementErrorMessage }}
     </p>
 
+
     <!-- Affichage interactif habituel, conservé pour l'écran. -->
+
     <div class="days">
+
       <article *ngFor="let day of days" class="day-card">
+
         <h2>
           {{ day.label }}
         </h2>
 
+
         <div class="meals">
+
           <div *ngFor="let meal of day.meals" class="meal-card">
+
             <span class="meal-type">
               {{ mealTypeLabel(meal.mealType) }}
             </span>
+
 
             <strong class="meal-name">
               {{ meal.recipeName }}
             </strong>
 
+
             <button type="button" class="secondary-button" (click)="viewRecipe(meal.recipeId)">
               Voir la recette
             </button>
+
 
             <button *ngIf="
                 viewingCurrentWeek &&
@@ -200,25 +362,33 @@
               Remplacer
             </button>
 
+
             <div *ngIf="
                 viewingCurrentWeek &&
                 replacingMealId === meal.id
               " class="replacement-panel">
+
               <label [for]="'recipe-' + meal.id">
                 Nouvelle recette
               </label>
 
+
               <select [id]="'recipe-' + meal.id" [(ngModel)]="selectedRecipeByMeal[meal.id]">
+
                 <option [ngValue]="null">
                   Choisir une recette
                 </option>
 
+
                 <option *ngFor="let recipe of recipes" [ngValue]="recipe.id" [disabled]="recipe.id === meal.recipeId">
                   {{ recipeOptionLabel(recipe) }}
                 </option>
+
               </select>
 
+
               <div class="replacement-actions">
+
                 <button type="button" class="primary-button" [disabled]="!selectedRecipeByMeal[meal.id]" (click)="
                     replaceMeal(
                       meal,
@@ -228,23 +398,35 @@
                   Valider
                 </button>
 
+
                 <button type="button" class="secondary-button" (click)="cancelReplacement()">
                   Annuler
                 </button>
+
               </div>
+
             </div>
+
           </div>
+
         </div>
+
       </article>
+
     </div>
+
 
     <!--
       Version dédiée à l'impression.
+
       Elle utilise la semaine actuellement affichée, y compris
       lorsqu'elle provient de l'historique.
     -->
+
     <section class="printable-week" data-testid="printable-week" aria-label="Planning hebdomadaire imprimable">
+
       <header class="printable-week-header">
+
         <p class="printable-week-brand">
           My Popote
         </p>
@@ -256,15 +438,21 @@
         <p>
           Semaine du {{ weekLabel(week.weekStartDate) }}
         </p>
+
       </header>
 
+
       <div class="printable-days">
+
         <article *ngFor="let day of days" class="printable-day">
+
           <h3>
             {{ day.label }}
           </h3>
 
+
           <div *ngFor="let meal of day.meals" class="printable-meal">
+
             <span class="printable-meal-type">
               {{ mealTypeLabel(meal.mealType) }}
             </span>
@@ -272,13 +460,20 @@
             <strong class="printable-meal-name">
               {{ meal.recipeName }}
             </strong>
+
           </div>
+
         </article>
+
       </div>
+
     </section>
 
+
     <div *ngIf="viewingCurrentWeek" class="week-validation">
+
       <section class="manual-shopping">
+
         <h2>
           Ajouter aux courses
         </h2>
@@ -288,7 +483,9 @@
           en plus des ingrédients prévus dans tes recettes.
         </p>
 
+
         <div class="manual-shopping-form">
+
           <label for="manual-item-name">
             Produit
           </label>
@@ -296,11 +493,13 @@
           <input id="manual-item-name" type="text" maxlength="150" placeholder="Ex. bananes"
             [(ngModel)]="manualItemName" />
 
+
           <label for="manual-item-quantity">
             Quantité
           </label>
 
           <input id="manual-item-quantity" type="number" min="0.001" step="0.001" [(ngModel)]="manualItemQuantity" />
+
 
           <label for="manual-item-unit">
             Unité
@@ -309,26 +508,33 @@
           <input id="manual-item-unit" type="text" maxlength="30" placeholder="Ex. pièce"
             [(ngModel)]="manualItemUnit" />
 
+
           <button type="button" class="secondary-button" (click)="addManualShoppingItem()">
             + Ajouter
           </button>
+
         </div>
+
 
         <p *ngIf="manualItemErrorMessage" class="error-message">
           {{ manualItemErrorMessage }}
         </p>
 
+
         <div *ngIf="manualShoppingItems.length > 0" class="manual-shopping-items">
+
           <p>
             <strong>
               Produits supplémentaires
             </strong>
           </p>
 
+
           <div *ngFor="
               let item of manualShoppingItems;
               let itemIndex = index
             " class="manual-shopping-item">
+
             <span>
               {{ item.name }}
               —
@@ -336,14 +542,20 @@
               {{ item.unit }}
             </span>
 
+
             <button type="button" class="secondary-button" (click)="removeManualShoppingItem(itemIndex)">
               Retirer
             </button>
+
           </div>
+
         </div>
+
       </section>
 
+
       <div class="week-actions">
+
         <button type="button" class="primary-button validate-button" [disabled]="validatingWeek || generating"
           (click)="validateWeek()" style="width: 50%; margin: 0 auto;">
           {{
@@ -352,49 +564,16 @@
           : 'Valider ma semaine'
           }}
         </button>
+
       </div>
+
 
       <p *ngIf="validationErrorMessage" class="error-message">
         {{ validationErrorMessage }}
       </p>
+
     </div>
+
   </div>
 
-  <section class="history-section">
-    <h2>
-      Semaines passées
-    </h2>
-
-    <p *ngIf="historyLoading">
-      Chargement de l'historique…
-    </p>
-
-    <p *ngIf="
-        !historyLoading &&
-        history.length === 0
-      " class="history-empty">
-      Aucune semaine précédente pour le moment.
-    </p>
-
-    <div *ngIf="
-        !historyLoading &&
-        history.length > 0
-      " class="history-list">
-      <button *ngFor="let historicalWeek of history" type="button" class="history-card"
-        (click)="viewHistoryWeek(historicalWeek)">
-        <span>
-          Semaine du
-        </span>
-
-        <strong>
-          {{ weekLabel(historicalWeek.weekStartDate) }}
-        </strong>
-
-        <span>
-          {{ historicalWeek.estimatedCost ?? 0 }}
-          €
-        </span>
-      </button>
-    </div>
-  </section>
 </section>
