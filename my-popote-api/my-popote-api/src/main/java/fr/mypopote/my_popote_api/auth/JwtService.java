@@ -28,7 +28,7 @@ import java.time.Instant;
 public class JwtService {
 
     private static final Duration TOKEN_LIFETIME =
-        Duration.ofMinutes(30);
+        Duration.ofHours(1);
 
     private final JwtEncoder jwtEncoder;
     private final JwtDecoder jwtDecoder;
