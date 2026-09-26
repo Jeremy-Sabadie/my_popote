@@ -22,9 +22,11 @@ import java.util.Optional;
 /**
  * Service métier chargé des plannings hebdomadaires.
  *
- * La génération respecte la saison et les tags choisis.
- * Le budget intervient uniquement si la proposition obtenue
- * avec ces préférences dépasse le plafond demandé.
+ * La saison et les tags sont des préférences :
+ * ils influencent l'ordre de sélection sans exclure les autres recettes.
+ *
+ * La diversité reste prioritaire afin d'éviter qu'une recette
+ * correspondant parfaitement aux préférences monopolise la semaine.
  */
 @Service
 @Transactional(readOnly = true)
@@ -68,9 +70,7 @@ public class MealPlanService {
         Long userId,
         GenerateMealPlanRequest request
     ) {
-        validateMonday(
-            request.weekStartDate()
-        );
+        validateMonday(request.weekStartDate());
 
         List<Recipe> recipes =
             loadRecipes(
@@ -122,10 +122,6 @@ public class MealPlanService {
 
         /*
          * Force les DELETE avant les nouveaux INSERT.
-         *
-         * Sans ce flush, MariaDB peut encore voir
-         * les anciens créneaux et déclencher
-         * uk_planned_meal_slot.
          */
         plannedMealRepository.flush();
 
@@ -285,6 +281,12 @@ public class MealPlanService {
 
     /**
      * Génère les repas de la semaine.
+     *
+     * Contrairement à l'ancienne implémentation,
+     * la saison et les tags ne filtrent plus les recettes.
+     *
+     * Ils servent uniquement à classer les recettes
+     * par niveau de préférence.
      */
     private List<PlannedMeal> generateMeals(
         MealPlan mealPlan,
@@ -292,32 +294,40 @@ public class MealPlanService {
         List<Long> preferredTagIds,
         String preferredSeason
     ) {
-        List<Recipe> seasonalRecipes =
-            selectRecipesForSeason(
+        String season =
+            preferredSeason == null ||
+            preferredSeason.isBlank()
+                ? getSeason(
+                    mealPlan.getWeekStartDate()
+                )
+                : preferredSeason;
+
+        List<Recipe> orderedRecipes =
+            orderRecipesByPreference(
                 recipes,
-                mealPlan.getWeekStartDate(),
-                preferredSeason
+                preferredTagIds,
+                season
             );
 
-        List<Recipe> preferredRecipes =
-            selectRecipesForPreferredTags(
-                seasonalRecipes,
-                preferredTagIds
+        /*
+         * Sans budget, on effectue une rotation sur toutes
+         * les recettes, les préférées étant placées en premier.
+         *
+         * Aucune recette n'est exclue uniquement parce qu'elle
+         * ne possède pas le meilleur tag ou la saison choisie.
+         */
+        if (mealPlan.getMaxBudget() == null) {
+            return buildMeals(
+                mealPlan,
+                orderedRecipes
             );
+        }
 
         List<PlannedMeal> preferredMeals =
             buildMeals(
                 mealPlan,
-                preferredRecipes
+                orderedRecipes
             );
-
-        /*
-         * Aucun budget :
-         * le comportement historique est conservé.
-         */
-        if (mealPlan.getMaxBudget() == null) {
-            return preferredMeals;
-        }
 
         BigDecimal preferredCost =
             calculateEstimatedCost(
@@ -325,7 +335,7 @@ public class MealPlanService {
             );
 
         /*
-         * La proposition préférée respecte déjà le budget.
+         * La rotation diversifiée respecte déjà le budget.
          */
         if (
             preferredCost.compareTo(
@@ -338,19 +348,24 @@ public class MealPlanService {
         /*
          * Le budget est dépassé.
          *
-         * On repart de toutes les recettes compatibles
-         * avec la saison pour permettre des alternatives
-         * moins coûteuses.
+         * On conserve l'ordre de préférence mais la sélection
+         * vérifie à chaque repas qu'il reste suffisamment
+         * de budget pour terminer la semaine.
          */
         return buildBudgetAwareMeals(
             mealPlan,
-            seasonalRecipes,
-            preferredTagIds
+            orderedRecipes
         );
     }
 
     /**
-     * Construit une semaine en rotation classique.
+     * Construit une semaine en rotation.
+     *
+     * Toutes les recettes du pool sont utilisées avant
+     * de recommencer un nouveau cycle.
+     *
+     * Cela garantit la diversité tant que plusieurs recettes
+     * sont disponibles.
      */
     private List<PlannedMeal> buildMeals(
         MealPlan mealPlan,
@@ -408,25 +423,15 @@ public class MealPlanService {
     /**
      * Construit une semaine en tenant compte du budget.
      *
-     * Les recettes sont classées par préférence, mais la recherche
-     * commence à une position différente à chaque repas.
-     *
-     * Cela évite que la première recette compatible soit choisie
-     * systématiquement pendant toute la semaine.
+     * La recherche commence à une position différente
+     * à chaque repas pour conserver une vraie rotation.
      */
     private List<PlannedMeal> buildBudgetAwareMeals(
         MealPlan mealPlan,
-        List<Recipe> recipes,
-        List<Long> preferredTagIds
+        List<Recipe> orderedRecipes
     ) {
         List<PlannedMeal> meals =
             new ArrayList<>();
-
-        List<Recipe> orderedRecipes =
-            orderRecipesByPreference(
-                recipes,
-                preferredTagIds
-            );
 
         int numberOfDays =
             mealPlan.isIncludeWeekend()
@@ -488,10 +493,6 @@ public class MealPlanService {
                         )
                     );
 
-                /*
-                 * Le prochain repas commencera sa recherche
-                 * sur la recette suivante.
-                 */
                 int selectedIndex =
                     orderedRecipes.indexOf(
                         recipe
@@ -507,30 +508,31 @@ public class MealPlanService {
     }
 
     /**
-     * Classe les recettes du meilleur score de tags
-     * vers le moins bon.
+     * Classe les recettes selon les préférences utilisateur.
      *
-     * Le tri Java étant stable, deux recettes ayant
-     * le même score conservent leur ordre d'origine.
+     * Score :
+     *
+     * - +2 si la recette correspond à la saison choisie ;
+     * - +1 par tag préféré présent sur la recette.
+     *
+     * Une recette sans saison reste utilisable toute l'année.
+     *
+     * Important :
+     * aucune recette n'est supprimée du pool.
      */
     private List<Recipe> orderRecipesByPreference(
         List<Recipe> recipes,
-        List<Long> preferredTagIds
+        List<Long> preferredTagIds,
+        String preferredSeason
     ) {
-        if (
-            preferredTagIds == null ||
-            preferredTagIds.isEmpty()
-        ) {
-            return recipes;
-        }
-
         return recipes.stream()
             .sorted(
                 Comparator.comparingInt(
                     (Recipe recipe) ->
-                        calculatePreferredTagScore(
+                        calculatePreferenceScore(
                             recipe,
-                            preferredTagIds
+                            preferredTagIds,
+                            preferredSeason
                         )
                 ).reversed()
             )
@@ -538,11 +540,95 @@ public class MealPlanService {
     }
 
     /**
+     * Calcule le score global d'une recette.
+     */
+    private int calculatePreferenceScore(
+        Recipe recipe,
+        List<Long> preferredTagIds,
+        String preferredSeason
+    ) {
+        int score =
+            calculatePreferredTagScore(
+                recipe,
+                preferredTagIds
+            );
+
+        if (
+            matchesSeason(
+                recipe,
+                preferredSeason
+            )
+        ) {
+            score += 2;
+        }
+
+        return score;
+    }
+
+    /**
+     * Indique si une recette correspond à la saison.
+     *
+     * Une recette sans saison est considérée comme
+     * utilisable toute l'année mais ne reçoit pas
+     * le bonus saisonnier.
+     */
+    private boolean matchesSeason(
+        Recipe recipe,
+        String preferredSeason
+    ) {
+        if (
+            preferredSeason == null ||
+            preferredSeason.isBlank() ||
+            recipe.getSeasons().isEmpty()
+        ) {
+            return false;
+        }
+
+        return recipe
+            .getSeasons()
+            .stream()
+            .map(
+                RecipeSeason::getSeason
+            )
+            .anyMatch(recipeSeason ->
+                recipeSeason.equalsIgnoreCase(
+                    preferredSeason
+                )
+            );
+    }
+
+    /**
+     * Calcule combien de tags préférés
+     * sont présents sur une recette.
+     */
+    private int calculatePreferredTagScore(
+        Recipe recipe,
+        List<Long> preferredTagIds
+    ) {
+        if (
+            preferredTagIds == null ||
+            preferredTagIds.isEmpty()
+        ) {
+            return 0;
+        }
+
+        return (int) recipe
+            .getTags()
+            .stream()
+            .filter(tag ->
+                tag.getId() != null &&
+                preferredTagIds.contains(
+                    tag.getId()
+                )
+            )
+            .count();
+    }
+
+    /**
      * Choisit une recette compatible avec le budget.
      *
      * La recherche commence à startIndex afin de répartir
-     * les recettes sur la semaine au lieu de toujours
-     * sélectionner la première recette de la liste.
+     * les recettes sur la semaine.
      */
     private Recipe selectRecipeWithinBudget(
         List<Recipe> orderedRecipes,
@@ -617,112 +703,6 @@ public class MealPlanService {
         return recipe.getEstimatedCost() == null
             ? BigDecimal.ZERO
             : recipe.getEstimatedCost();
-    }
-
-    /**
-     * Sélectionne les recettes compatibles avec
-     * la saison choisie, ou celle de la semaine par défaut.
-     *
-     * Une recette sans saison est utilisable toute l'année.
-     *
-     * Si aucune recette n'est compatible,
-     * toutes les recettes sont conservées.
-     */
-    private List<Recipe> selectRecipesForSeason(
-        List<Recipe> recipes,
-        LocalDate weekStartDate,
-        String preferredSeason
-    ) {
-        String season =
-            preferredSeason == null ||
-            preferredSeason.isBlank()
-                ? getSeason(
-                    weekStartDate
-                )
-                : preferredSeason;
-
-        List<Recipe> eligibleRecipes =
-            recipes.stream()
-                .filter(recipe ->
-                    recipe.getSeasons().isEmpty() ||
-                    recipe.getSeasons()
-                        .stream()
-                        .map(
-                            RecipeSeason::getSeason
-                        )
-                        .anyMatch(recipeSeason ->
-                            recipeSeason.equalsIgnoreCase(
-                                season
-                            )
-                        )
-                )
-                .toList();
-
-        if (eligibleRecipes.isEmpty()) {
-            return recipes;
-        }
-
-        return eligibleRecipes;
-    }
-
-    /**
-     * Privilégie les recettes correspondant
-     * le mieux aux tags choisis par l'utilisateur.
-     */
-    private List<Recipe> selectRecipesForPreferredTags(
-        List<Recipe> recipes,
-        List<Long> preferredTagIds
-    ) {
-        if (
-            preferredTagIds == null ||
-            preferredTagIds.isEmpty()
-        ) {
-            return recipes;
-        }
-
-        int maxScore =
-            recipes.stream()
-                .mapToInt(recipe ->
-                    calculatePreferredTagScore(
-                        recipe,
-                        preferredTagIds
-                    )
-                )
-                .max()
-                .orElse(0);
-
-        if (maxScore == 0) {
-            return recipes;
-        }
-
-        return recipes.stream()
-            .filter(recipe ->
-                calculatePreferredTagScore(
-                    recipe,
-                    preferredTagIds
-                ) == maxScore
-            )
-            .toList();
-    }
-
-    /**
-     * Calcule combien de tags préférés
-     * sont présents sur une recette.
-     */
-    private int calculatePreferredTagScore(
-        Recipe recipe,
-        List<Long> preferredTagIds
-    ) {
-        return (int) recipe
-            .getTags()
-            .stream()
-            .filter(tag ->
-                tag.getId() != null &&
-                preferredTagIds.contains(
-                    tag.getId()
-                )
-            )
-            .count();
     }
 
     /**

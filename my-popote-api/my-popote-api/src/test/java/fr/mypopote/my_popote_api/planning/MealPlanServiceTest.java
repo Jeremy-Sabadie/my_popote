@@ -42,9 +42,7 @@ class MealPlanServiceTest {
     @Test
     void shouldGenerateTenMealsWithoutWeekend() {
         Long userId = 1L;
-
-        LocalDate monday =
-            LocalDate.of(2026, 9, 7);
+        LocalDate monday = LocalDate.of(2026, 9, 7);
 
         User user = new User(
             "jeremy@example.com",
@@ -52,35 +50,30 @@ class MealPlanServiceTest {
             "Jérémy"
         );
 
-        Recipe firstRecipe =
-            new Recipe(
-                user,
-                "Poulet curry",
-                "MEAT",
-                2,
-                new BigDecimal("5.00"),
-                null
-            );
+        Recipe firstRecipe = new Recipe(
+            user,
+            "Poulet curry",
+            "MEAT",
+            2,
+            new BigDecimal("5.00"),
+            null
+        );
 
-        Recipe secondRecipe =
-            new Recipe(
-                user,
-                "Pâtes tomate",
-                "VEGETARIAN",
-                2,
-                new BigDecimal("3.00"),
-                null
-            );
+        Recipe secondRecipe = new Recipe(
+            user,
+            "Pâtes tomate",
+            "VEGETARIAN",
+            2,
+            new BigDecimal("3.00"),
+            null
+        );
 
         GenerateMealPlanRequest request =
             new GenerateMealPlanRequest(
                 monday,
                 false,
                 new BigDecimal("60.00"),
-                List.of(
-                    10L,
-                    20L
-                )
+                List.of(10L, 20L)
             );
 
         when(
@@ -102,11 +95,10 @@ class MealPlanServiceTest {
         );
 
         when(
-            mealPlanRepository
-                .findByUserIdAndWeekStartDate(
-                    userId,
-                    monday
-                )
+            mealPlanRepository.findByUserIdAndWeekStartDate(
+                userId,
+                monday
+            )
         ).thenReturn(
             Optional.empty()
         );
@@ -181,9 +173,7 @@ class MealPlanServiceTest {
     @Test
     void shouldGenerateFourteenMealsWithWeekend() {
         Long userId = 1L;
-
-        LocalDate monday =
-            LocalDate.of(2026, 9, 7);
+        LocalDate monday = LocalDate.of(2026, 9, 7);
 
         User user = new User(
             "jeremy@example.com",
@@ -191,15 +181,14 @@ class MealPlanServiceTest {
             "Jérémy"
         );
 
-        Recipe recipe =
-            new Recipe(
-                user,
-                "Poulet curry",
-                "MEAT",
-                2,
-                new BigDecimal("5.00"),
-                null
-            );
+        Recipe recipe = new Recipe(
+            user,
+            "Poulet curry",
+            "MEAT",
+            2,
+            new BigDecimal("5.00"),
+            null
+        );
 
         GenerateMealPlanRequest request =
             new GenerateMealPlanRequest(
@@ -219,11 +208,10 @@ class MealPlanServiceTest {
         );
 
         when(
-            mealPlanRepository
-                .findByUserIdAndWeekStartDate(
-                    userId,
-                    monday
-                )
+            mealPlanRepository.findByUserIdAndWeekStartDate(
+                userId,
+                monday
+            )
         ).thenReturn(
             Optional.empty()
         );
@@ -268,9 +256,7 @@ class MealPlanServiceTest {
     @Test
     void shouldPreferRecipesMatchingWeekSeason() {
         Long userId = 1L;
-
-        LocalDate monday =
-            LocalDate.of(2026, 7, 6);
+        LocalDate monday = LocalDate.of(2026, 7, 6);
 
         User user = new User(
             "jeremy@example.com",
@@ -278,29 +264,27 @@ class MealPlanServiceTest {
             "Jérémy"
         );
 
-        Recipe summerRecipe =
-            new Recipe(
-                user,
-                "Salade de poulet",
-                "MEAT",
-                2,
-                new BigDecimal("5.00"),
-                null
-            );
+        Recipe summerRecipe = new Recipe(
+            user,
+            "Salade de poulet",
+            "MEAT",
+            2,
+            new BigDecimal("5.00"),
+            null
+        );
 
         summerRecipe.addSeason(
             "SUMMER"
         );
 
-        Recipe winterRecipe =
-            new Recipe(
-                user,
-                "Tartiflette",
-                "MEAT",
-                2,
-                new BigDecimal("7.00"),
-                null
-            );
+        Recipe winterRecipe = new Recipe(
+            user,
+            "Tartiflette",
+            "MEAT",
+            2,
+            new BigDecimal("7.00"),
+            null
+        );
 
         winterRecipe.addSeason(
             "WINTER"
@@ -311,10 +295,7 @@ class MealPlanServiceTest {
                 monday,
                 false,
                 null,
-                List.of(
-                    10L,
-                    20L
-                )
+                List.of(10L, 20L)
             );
 
         when(
@@ -336,11 +317,10 @@ class MealPlanServiceTest {
         );
 
         when(
-            mealPlanRepository
-                .findByUserIdAndWeekStartDate(
-                    userId,
-                    monday
-                )
+            mealPlanRepository.findByUserIdAndWeekStartDate(
+                userId,
+                monday
+            )
         ).thenReturn(
             Optional.empty()
         );
@@ -373,15 +353,31 @@ class MealPlanServiceTest {
             result.meals()
         ).hasSize(10);
 
+        /*
+         * La recette correspondant à la saison
+         * doit être prioritaire.
+         */
         assertThat(
             result.meals()
-        ).allSatisfy(
-            meal ->
-                assertThat(
-                    meal.recipeName()
-                ).isEqualTo(
-                    "Salade de poulet"
-                )
+                .get(0)
+                .recipeName()
+        ).isEqualTo(
+            "Salade de poulet"
+        );
+
+        /*
+         * Mais la saison est une préférence,
+         * pas un filtre exclusif.
+         */
+        assertThat(
+            result.meals()
+                .stream()
+                .map(meal -> meal.recipeName())
+                .distinct()
+                .toList()
+        ).containsExactlyInAnyOrder(
+            "Salade de poulet",
+            "Tartiflette"
         );
     }
 
@@ -405,7 +401,9 @@ class MealPlanServiceTest {
             null
         );
 
-        autumnRecipe.addSeason("AUTUMN");
+        autumnRecipe.addSeason(
+            "AUTUMN"
+        );
 
         Recipe winterRecipe = new Recipe(
             user,
@@ -416,96 +414,8 @@ class MealPlanServiceTest {
             null
         );
 
-        winterRecipe.addSeason("WINTER");
-
-        GenerateMealPlanRequest request = new GenerateMealPlanRequest(
-            monday,
-            false,
-            null,
-            List.of(10L, 20L),
-            List.of(),
+        winterRecipe.addSeason(
             "WINTER"
-        );
-
-        when(recipeRepository.findByIdAndUserId(10L, userId))
-            .thenReturn(Optional.of(autumnRecipe));
-
-        when(recipeRepository.findByIdAndUserId(20L, userId))
-            .thenReturn(Optional.of(winterRecipe));
-
-        when(mealPlanRepository.findByUserIdAndWeekStartDate(userId, monday))
-            .thenReturn(Optional.empty());
-
-        when(mealPlanRepository.save(any(MealPlan.class)))
-            .thenAnswer(invocation -> invocation.getArgument(0));
-
-        when(plannedMealRepository.saveAll(anyList()))
-            .thenAnswer(invocation -> invocation.getArgument(0));
-
-        MealPlanResponse result =
-            mealPlanService.generate(userId, request);
-
-        assertThat(result.meals()).hasSize(10);
-
-        assertThat(result.meals()).allSatisfy(
-            meal ->
-                assertThat(meal.recipeName())
-                    .isEqualTo("Tartiflette")
-        );
-    }
-
-    @Test
-    void shouldPreferRecipesMatchingPreferredTags() {
-        Long userId = 1L;
-
-        LocalDate monday =
-            LocalDate.of(2026, 7, 6);
-
-        User user = new User(
-            "jeremy@example.com",
-            "hashed-password",
-            "Jérémy"
-        );
-
-        Recipe preferredRecipe =
-            new Recipe(
-                user,
-                "Poulet protéiné",
-                "MEAT",
-                2,
-                new BigDecimal("5.00"),
-                null
-            );
-
-        preferredRecipe.addSeason(
-            "SUMMER"
-        );
-
-        Tag preferredTag =
-            mock(Tag.class);
-
-        when(
-            preferredTag.getId()
-        ).thenReturn(
-            100L
-        );
-
-        preferredRecipe.addTag(
-            preferredTag
-        );
-
-        Recipe otherRecipe =
-            new Recipe(
-                user,
-                "Pâtes tomate",
-                "VEGETARIAN",
-                2,
-                new BigDecimal("3.00"),
-                null
-            );
-
-        otherRecipe.addSeason(
-            "SUMMER"
         );
 
         GenerateMealPlanRequest request =
@@ -513,13 +423,9 @@ class MealPlanServiceTest {
                 monday,
                 false,
                 null,
-                List.of(
-                    10L,
-                    20L
-                ),
-                List.of(
-                    100L
-                )
+                List.of(10L, 20L),
+                List.of(),
+                "WINTER"
             );
 
         when(
@@ -528,9 +434,7 @@ class MealPlanServiceTest {
                 userId
             )
         ).thenReturn(
-            Optional.of(
-                preferredRecipe
-            )
+            Optional.of(autumnRecipe)
         );
 
         when(
@@ -539,17 +443,14 @@ class MealPlanServiceTest {
                 userId
             )
         ).thenReturn(
-            Optional.of(
-                otherRecipe
-            )
+            Optional.of(winterRecipe)
         );
 
         when(
-            mealPlanRepository
-                .findByUserIdAndWeekStartDate(
-                    userId,
-                    monday
-                )
+            mealPlanRepository.findByUserIdAndWeekStartDate(
+                userId,
+                monday
+            )
         ).thenReturn(
             Optional.empty()
         );
@@ -582,24 +483,181 @@ class MealPlanServiceTest {
             result.meals()
         ).hasSize(10);
 
+        /*
+         * WINTER a été explicitement sélectionné :
+         * Tartiflette doit donc passer devant
+         * la recette correspondant à la saison calendrier.
+         */
         assertThat(
             result.meals()
-        ).allSatisfy(
-            meal ->
-                assertThat(
-                    meal.recipeName()
-                ).isEqualTo(
-                    "Poulet protéiné"
-                )
+                .get(0)
+                .recipeName()
+        ).isEqualTo(
+            "Tartiflette"
+        );
+
+        /*
+         * La recette d'automne reste néanmoins
+         * disponible dans la rotation.
+         */
+        assertThat(
+            result.meals()
+                .stream()
+                .map(meal -> meal.recipeName())
+                .distinct()
+                .toList()
+        ).containsExactlyInAnyOrder(
+            "Tartiflette",
+            "Poêlée d'automne"
+        );
+    }
+
+    @Test
+    void shouldPreferRecipesMatchingPreferredTags() {
+        Long userId = 1L;
+        LocalDate monday = LocalDate.of(2026, 7, 6);
+
+        User user = new User(
+            "jeremy@example.com",
+            "hashed-password",
+            "Jérémy"
+        );
+
+        Recipe preferredRecipe = new Recipe(
+            user,
+            "Poulet protéiné",
+            "MEAT",
+            2,
+            new BigDecimal("5.00"),
+            null
+        );
+
+        preferredRecipe.addSeason(
+            "SUMMER"
+        );
+
+        Tag preferredTag =
+            mock(Tag.class);
+
+        when(
+            preferredTag.getId()
+        ).thenReturn(
+            100L
+        );
+
+        preferredRecipe.addTag(
+            preferredTag
+        );
+
+        Recipe otherRecipe = new Recipe(
+            user,
+            "Pâtes tomate",
+            "VEGETARIAN",
+            2,
+            new BigDecimal("3.00"),
+            null
+        );
+
+        otherRecipe.addSeason(
+            "SUMMER"
+        );
+
+        GenerateMealPlanRequest request =
+            new GenerateMealPlanRequest(
+                monday,
+                false,
+                null,
+                List.of(10L, 20L),
+                List.of(100L)
+            );
+
+        when(
+            recipeRepository.findByIdAndUserId(
+                10L,
+                userId
+            )
+        ).thenReturn(
+            Optional.of(preferredRecipe)
+        );
+
+        when(
+            recipeRepository.findByIdAndUserId(
+                20L,
+                userId
+            )
+        ).thenReturn(
+            Optional.of(otherRecipe)
+        );
+
+        when(
+            mealPlanRepository.findByUserIdAndWeekStartDate(
+                userId,
+                monday
+            )
+        ).thenReturn(
+            Optional.empty()
+        );
+
+        when(
+            mealPlanRepository.save(
+                any(MealPlan.class)
+            )
+        ).thenAnswer(
+            invocation ->
+                invocation.getArgument(0)
+        );
+
+        when(
+            plannedMealRepository.saveAll(
+                anyList()
+            )
+        ).thenAnswer(
+            invocation ->
+                invocation.getArgument(0)
+        );
+
+        MealPlanResponse result =
+            mealPlanService.generate(
+                userId,
+                request
+            );
+
+        assertThat(
+            result.meals()
+        ).hasSize(10);
+
+        /*
+         * La recette correspondant au tag préféré
+         * doit être prioritaire.
+         */
+        assertThat(
+            result.meals()
+                .get(0)
+                .recipeName()
+        ).isEqualTo(
+            "Poulet protéiné"
+        );
+
+        /*
+         * Mais le tag préféré ne doit plus
+         * éliminer les autres recettes.
+         */
+        assertThat(
+            result.meals()
+                .stream()
+                .map(meal -> meal.recipeName())
+                .distinct()
+                .toList()
+        ).containsExactlyInAnyOrder(
+            "Poulet protéiné",
+            "Pâtes tomate"
         );
     }
 
     @Test
     void shouldRotateRecipesWhenSeveralRecipesMatchPreferredTags() {
         Long userId = 1L;
-
-        LocalDate monday =
-            LocalDate.of(2026, 9, 21);
+        LocalDate monday = LocalDate.of(2026, 9, 21);
 
         User user = new User(
             "jeremy@example.com",
@@ -616,43 +674,40 @@ class MealPlanServiceTest {
             100L
         );
 
-        Recipe firstRecipe =
-            new Recipe(
-                user,
-                "Poulet riz",
-                "MEAT",
-                2,
-                new BigDecimal("5.00"),
-                null
-            );
+        Recipe firstRecipe = new Recipe(
+            user,
+            "Poulet riz",
+            "MEAT",
+            2,
+            new BigDecimal("5.00"),
+            null
+        );
 
         firstRecipe.addTag(
             preferredTag
         );
 
-        Recipe secondRecipe =
-            new Recipe(
-                user,
-                "Bowl patates",
-                "MEAT",
-                2,
-                new BigDecimal("4.00"),
-                null
-            );
+        Recipe secondRecipe = new Recipe(
+            user,
+            "Bowl patates",
+            "MEAT",
+            2,
+            new BigDecimal("4.00"),
+            null
+        );
 
         secondRecipe.addTag(
             preferredTag
         );
 
-        Recipe thirdRecipe =
-            new Recipe(
-                user,
-                "Pâtes poulet",
-                "MEAT",
-                2,
-                new BigDecimal("4.50"),
-                null
-            );
+        Recipe thirdRecipe = new Recipe(
+            user,
+            "Pâtes poulet",
+            "MEAT",
+            2,
+            new BigDecimal("4.50"),
+            null
+        );
 
         thirdRecipe.addTag(
             preferredTag
@@ -701,11 +756,10 @@ class MealPlanServiceTest {
         );
 
         when(
-            mealPlanRepository
-                .findByUserIdAndWeekStartDate(
-                    userId,
-                    monday
-                )
+            mealPlanRepository.findByUserIdAndWeekStartDate(
+                userId,
+                monday
+            )
         ).thenReturn(
             Optional.empty()
         );
@@ -750,9 +804,7 @@ class MealPlanServiceTest {
     @Test
     void shouldRespectBudgetWhileKeepingPreferredRecipesWhenPossible() {
         Long userId = 1L;
-
-        LocalDate monday =
-            LocalDate.of(2026, 7, 6);
+        LocalDate monday = LocalDate.of(2026, 7, 6);
 
         User user = new User(
             "jeremy@example.com",
@@ -760,15 +812,14 @@ class MealPlanServiceTest {
             "Jérémy"
         );
 
-        Recipe preferredRecipe =
-            new Recipe(
-                user,
-                "Poulet protéiné",
-                "MEAT",
-                2,
-                new BigDecimal("5.00"),
-                null
-            );
+        Recipe preferredRecipe = new Recipe(
+            user,
+            "Poulet protéiné",
+            "MEAT",
+            2,
+            new BigDecimal("5.00"),
+            null
+        );
 
         preferredRecipe.addSeason(
             "SUMMER"
@@ -787,15 +838,14 @@ class MealPlanServiceTest {
             preferredTag
         );
 
-        Recipe budgetRecipe =
-            new Recipe(
-                user,
-                "Pâtes tomate",
-                "VEGETARIAN",
-                2,
-                new BigDecimal("3.00"),
-                null
-            );
+        Recipe budgetRecipe = new Recipe(
+            user,
+            "Pâtes tomate",
+            "VEGETARIAN",
+            2,
+            new BigDecimal("3.00"),
+            null
+        );
 
         budgetRecipe.addSeason(
             "SUMMER"
@@ -838,11 +888,10 @@ class MealPlanServiceTest {
         );
 
         when(
-            mealPlanRepository
-                .findByUserIdAndWeekStartDate(
-                    userId,
-                    monday
-                )
+            mealPlanRepository.findByUserIdAndWeekStartDate(
+                userId,
+                monday
+            )
         ).thenReturn(
             Optional.empty()
         );
@@ -887,9 +936,7 @@ class MealPlanServiceTest {
                         )
                 )
                 .count()
-        ).isGreaterThan(
-            0
-        );
+        ).isGreaterThan(0);
 
         assertThat(
             result.meals()
@@ -901,8 +948,6 @@ class MealPlanServiceTest {
                         )
                 )
                 .count()
-        ).isGreaterThan(
-            0
-        );
+        ).isGreaterThan(0);
     }
 }
