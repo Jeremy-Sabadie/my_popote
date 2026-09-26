@@ -577,3 +577,165 @@ h1 {
       repeat(3, minmax(0, 1fr));
   }
 }
+
+
+/* Optimisations UX/UI mobile */
+
+@media (max-width: 699px) {
+
+  .recipes-page {
+    padding-top: 16px;
+  }
+
+  .page-header {
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+
+  .header-actions .primary-button {
+    width: 100%;
+  }
+
+
+  /* Filtres plus compacts */
+
+  .filters-card {
+    padding: 14px;
+    margin-bottom: 18px;
+  }
+
+  .filters-header {
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .filters-header p {
+    display: none;
+  }
+
+  .filters-card .field {
+    gap: 5px;
+  }
+
+  .filters-card .field label {
+    font-size: 0.85rem;
+  }
+
+  .filters-card .field input {
+    min-height: 44px;
+  }
+
+  .filters-card .tags {
+    flex-wrap: nowrap;
+    gap: 7px;
+    margin: 12px -14px -2px;
+    padding: 0 14px 4px;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+  }
+
+  .filters-card .tags::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tag-filter {
+    flex: 0 0 auto;
+    min-height: 38px;
+    padding: 7px 12px;
+  }
+
+
+  /* Cartes recettes plus denses */
+
+  .recipe-grid {
+    gap: 12px;
+  }
+
+  .recipe-card {
+    padding: 15px;
+  }
+
+  .recipe-tags {
+    margin-top: 12px;
+  }
+
+  .seasons {
+    margin-top: 9px;
+  }
+
+  .recipe-footer {
+    margin-top: 14px;
+    padding-top: 12px;
+  }
+
+  .recipe-footer .secondary-button {
+    min-height: 40px;
+  }
+
+
+  /* Modale adaptée aux petits écrans */
+
+  .modal-header {
+    padding: 16px;
+  }
+
+  .modal-body {
+    padding: 16px;
+  }
+
+  .modal-footer {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 8px;
+    padding:
+      12px 16px max(12px, env(safe-area-inset-bottom));
+  }
+
+  .modal-footer .primary-button,
+  .modal-footer .secondary-button,
+  .modal-footer .danger-button,
+  .modal-footer .cancel-button {
+    width: 100%;
+    min-width: 0;
+    min-height: 46px;
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+
+  /*
+   * Consultation :
+   * Modifier devient l'action principale.
+   * Il occupe toute la largeur.
+   */
+
+  .modal-footer .primary-button {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+
+  .modal-footer .secondary-button,
+  .modal-footer .danger-button {
+    grid-row: 2;
+  }
+
+
+  /*
+   * Formulaire :
+   * Annuler et Ajouter/Enregistrer restent côte à côte.
+   */
+
+  .modal-form .modal-footer .primary-button {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .modal-form .modal-footer .cancel-button {
+    grid-row: auto;
+  }
+
+  .detail-section {
+    margin-top: 22px;
+  }
+}

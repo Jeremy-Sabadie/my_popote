@@ -9,27 +9,34 @@
   box-sizing: border-box;
 }
 
+
+/* En-tête */
+
 .today-header {
-  margin-bottom: 1.25rem;
+  margin-bottom: 1rem;
 }
 
 .today-header h1 {
   margin: 0;
   font-size: 1.8rem;
+  line-height: 1.15;
 }
 
 .eyebrow {
-  margin: 0 0 0.25rem;
-  font-size: 0.85rem;
+  margin: 0 0 0.2rem;
+  font-size: 0.82rem;
   font-weight: 600;
-  opacity: 0.65;
+  opacity: 0.6;
 }
 
 .today-date {
-  margin: 0.4rem 0 0;
+  margin: 0.35rem 0 0;
   font-size: 0.95rem;
   opacity: 0.7;
 }
+
+
+/* États */
 
 .state-card {
   padding: 1.25rem;
@@ -56,17 +63,27 @@
   color: #9d2525;
 }
 
+
+/* Repas */
+
 .today-meals {
   display: grid;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .meal-card {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "type button"
+    "name button";
 
-  padding: 1rem;
+  column-gap: 0.75rem;
+  row-gap: 0.3rem;
+
+  align-items: center;
+
+  padding: 0.9rem 1rem;
 
   border: 1px solid #dedede;
   border-radius: 1rem;
@@ -75,25 +92,39 @@
 }
 
 .meal-type {
-  font-size: 0.85rem;
+  grid-area: type;
+
+  font-size: 0.82rem;
   font-weight: 600;
   opacity: 0.65;
 }
 
 .meal-name {
-  font-size: 1.1rem;
+  grid-area: name;
+
+  min-width: 0;
+
+  font-size: 1.05rem;
+  line-height: 1.3;
+
+  overflow-wrap: anywhere;
 }
 
 .missing-meal {
+  grid-area: name;
+
   margin: 0;
   opacity: 0.65;
 }
 
+
+/* Action */
+
 .recipe-button {
-  align-self: flex-start;
+  grid-area: button;
 
   min-height: 44px;
-  padding: 0.65rem 0.9rem;
+  padding: 0.6rem 0.8rem;
 
   border: 1px solid #315f44;
   border-radius: 0.75rem;
@@ -102,7 +133,10 @@
   color: #315f44;
 
   font: inherit;
+  font-size: 0.9rem;
   font-weight: 600;
+
+  white-space: nowrap;
 
   cursor: pointer;
 }
@@ -112,12 +146,66 @@
   background: #f2f7f3;
 }
 
+
+/*
+ * Sur les écrans très étroits, on évite de comprimer
+ * le nom du repas à cause du bouton.
+ */
+
+@media (max-width: 390px) {
+
+  .meal-card {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "type"
+      "name"
+      "button";
+
+    gap: 0.45rem;
+
+    padding: 0.85rem;
+  }
+
+  .recipe-button {
+    justify-self: start;
+
+    min-height: 42px;
+    margin-top: 0.15rem;
+  }
+}
+
+
+/* Tablette / desktop */
+
 @media (min-width: 640px) {
+
   .today-page {
     padding: 1.5rem;
   }
 
+  .today-header {
+    margin-bottom: 1.25rem;
+  }
+
   .today-meals {
     grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .meal-card {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "type"
+      "name"
+      "button";
+
+    align-content: start;
+
+    padding: 1rem;
+  }
+
+  .recipe-button {
+    justify-self: start;
+    margin-top: 0.25rem;
   }
 }

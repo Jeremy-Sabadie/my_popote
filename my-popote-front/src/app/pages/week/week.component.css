@@ -5,37 +5,54 @@
 .week-page {
   width: min(100%, 760px);
   margin: 0 auto;
-  padding: 1rem;
+  padding: 1rem 1rem 6rem;
   box-sizing: border-box;
 }
+
+
+/* =========================================================
+   EN-TÊTE
+   ========================================================= */
 
 .week-header {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  margin-bottom: 1.25rem;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
 }
 
 .week-header h1 {
   margin: 0;
   font-size: 1.8rem;
+  line-height: 1.15;
 }
 
 .eyebrow {
-  margin: 0 0 0.25rem;
-  font-size: 0.85rem;
+  margin: 0 0 0.2rem;
+  font-size: 0.82rem;
   font-weight: 600;
-  opacity: 0.65;
+  opacity: 0.6;
 }
 
 .week-cost {
-  margin: 0;
+  margin: 0.35rem 0 0;
+  font-size: 0.95rem;
+  opacity: 0.75;
 }
 
+.week-cost strong {
+  color: #315f44;
+}
+
+
+/* =========================================================
+   ÉTATS
+   ========================================================= */
+
 .state-card {
-  padding: 1.25rem;
+  padding: 1rem;
   border: 1px solid #dedede;
-  border-radius: 1rem;
+  border-radius: 0.9rem;
   background: #ffffff;
   text-align: center;
 }
@@ -49,17 +66,32 @@
 }
 
 .empty-state p {
+  margin-bottom: 0;
   opacity: 0.75;
 }
+
+.error-message {
+  margin: 0.8rem 0;
+  color: #9d2525;
+}
+
+
+/* =========================================================
+   BOUTONS COMMUNS
+   ========================================================= */
 
 .primary-button,
 .secondary-button,
 .replace-button {
   min-height: 44px;
-  padding: 0.7rem 1rem;
-  border-radius: 0.75rem;
+  padding: 0.65rem 0.85rem;
+
+  border-radius: 0.7rem;
+
   font: inherit;
+  font-size: 0.9rem;
   font-weight: 600;
+
   cursor: pointer;
 }
 
@@ -69,10 +101,9 @@
   color: #ffffff;
 }
 
-.primary-button:disabled,
-.secondary-button:disabled {
-  opacity: 0.6;
-  cursor: default;
+.primary-button:hover,
+.primary-button:focus-visible {
+  background: #244b35;
 }
 
 .secondary-button,
@@ -82,49 +113,58 @@
   color: #315f44;
 }
 
-.error-message {
-  margin: 1rem 0;
-  color: #9d2525;
+.secondary-button:hover,
+.secondary-button:focus-visible,
+.replace-button:hover,
+.replace-button:focus-visible {
+  background: #f2f7f3;
+}
+
+.primary-button:disabled,
+.secondary-button:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 
 
-/*
- * Navigation entre les semaines.
- *
- * La présentation reprend volontairement celle de la page Courses :
- * grandes cartes faciles à utiliser sur mobile et au pouce.
- */
+/* =========================================================
+   HISTORIQUE DES SEMAINES
+   ========================================================= */
 
 .weeks-section {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
 }
 
 .weeks-section h2 {
-  margin: 0 0 1rem;
-  font-size: 1.45rem;
+  margin: 0 0 0.65rem;
+  font-size: 1.2rem;
 }
 
 .weeks-list {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .week-history-card {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+
+  gap: 0.75rem;
 
   width: 100%;
-  min-height: 88px;
-  padding: 1rem 1.25rem;
+  min-height: 62px;
+
+  padding: 0.65rem 0.8rem;
 
   border: 1px solid #d6dfd9;
-  border-radius: 1rem;
+  border-radius: 0.8rem;
 
   background: #ffffff;
   color: inherit;
+
+  box-sizing: border-box;
 
   font: inherit;
   text-align: left;
@@ -132,8 +172,10 @@
   cursor: pointer;
 }
 
-.week-history-card:hover {
+.week-history-card:hover,
+.week-history-card:focus-visible {
   border-color: #315f44;
+  background: #f7faf8;
 }
 
 .week-history-card.selected {
@@ -144,39 +186,49 @@
 .week-history-content {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+
+  gap: 0.1rem;
+
   min-width: 0;
 }
 
 .week-history-label {
-  font-size: 0.95rem;
+  font-size: 0.76rem;
   font-weight: 400;
-  opacity: 0.7;
+  opacity: 0.65;
 }
 
 .week-history-content strong {
-  font-size: 1.15rem;
+  font-size: 0.92rem;
   line-height: 1.2;
 }
 
 .week-history-arrow {
   flex-shrink: 0;
+
   color: #315f44;
-  font-size: 1.8rem;
+
+  font-size: 1.35rem;
   line-height: 1;
 }
 
 .history-loading {
-  margin: 0 0 1.5rem;
+  margin: 0 0 1rem;
   opacity: 0.7;
 }
 
 
+/* =========================================================
+   PRÉFÉRENCES
+   ========================================================= */
+
 .preferences-card {
-  margin-bottom: 1.25rem;
-  padding: 1rem;
+  margin-bottom: 1rem;
+  padding: 0.9rem;
+
   border: 1px solid #dedede;
-  border-radius: 1rem;
+  border-radius: 0.9rem;
+
   background: #ffffff;
 }
 
@@ -184,48 +236,119 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
+
   gap: 0.75rem;
-  margin-bottom: 0.9rem;
+
+  margin-bottom: 0.75rem;
 }
 
 .preferences-header h2 {
   margin: 0;
   font-size: 1.05rem;
+  line-height: 1.25;
 }
 
 .preferences-header p {
-  margin: 0.35rem 0 0;
-  font-size: 0.9rem;
-  opacity: 0.7;
+  margin: 0.25rem 0 0;
+
+  font-size: 0.85rem;
+  line-height: 1.4;
+
+  opacity: 0.68;
 }
 
 .clear-preferences-button {
-  padding: 0;
+  flex-shrink: 0;
+
+  min-height: 40px;
+  padding: 0 0.25rem;
+
   border: 0;
+
   background: transparent;
   color: #315f44;
+
   font: inherit;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 600;
+
   cursor: pointer;
 }
+
+
+/* Saison */
+
+.budget-preference {
+  margin-top: 1rem;
+  padding-top: 0.85rem;
+
+  border-top: 1px solid #eeeeee;
+}
+
+.preferences-header+.budget-preference {
+  margin-top: 0;
+  padding-top: 0;
+
+  border-top: 0;
+}
+
+.budget-preference>label {
+  display: block;
+
+  margin-bottom: 0.4rem;
+
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.budget-preference select {
+  width: 100%;
+  min-height: 44px;
+
+  padding: 0.55rem 0.7rem;
+
+  border: 1px solid #cfcfcf;
+  border-radius: 0.65rem;
+
+  background: #ffffff;
+
+  box-sizing: border-box;
+
+  font: inherit;
+}
+
+
+/* Tags */
 
 .preference-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.55rem;
+
+  gap: 0.45rem;
+
+  margin-top: 0.8rem;
 }
 
 .preference-tag {
   min-height: 40px;
-  padding: 0.5rem 0.8rem;
-  border: 1px solid #bdbdbd;
+
+  padding: 0.45rem 0.7rem;
+
+  border: 1px solid #c9cfcb;
   border-radius: 999px;
+
   background: #ffffff;
   color: #333333;
+
   font: inherit;
-  font-size: 0.9rem;
+  font-size: 0.84rem;
+
   cursor: pointer;
+}
+
+.preference-tag:hover,
+.preference-tag:focus-visible {
+  border-color: #315f44;
 }
 
 .preference-tag.selected {
@@ -235,185 +358,309 @@
 }
 
 .preferences-info {
-  margin: 0.8rem 0 0;
-  font-size: 0.85rem;
-  opacity: 0.7;
+  margin: 0.55rem 0 0;
+
+  font-size: 0.78rem;
+  line-height: 1.4;
+
+  opacity: 0.65;
 }
 
 
-/*
- * Réglage du budget souhaité pour la semaine.
- */
-
-.budget-preference {
-  margin-top: 1.25rem;
-  padding-top: 1rem;
-  border-top: 1px solid #eeeeee;
-}
+/* =========================================================
+   BUDGET
+   ========================================================= */
 
 .budget-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 0.65rem;
+
+  gap: 0.75rem;
+
+  margin-bottom: 0.45rem;
 }
 
 .budget-header label {
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   font-weight: 600;
 }
 
 .budget-header strong {
-  white-space: nowrap;
+  flex-shrink: 0;
+
   color: #315f44;
+
+  white-space: nowrap;
 }
 
 .budget-preference input[type='range'] {
-  width: 50%;
-  min-height: 32px;
+  width: 100%;
+  min-height: 36px;
+
   margin: 0;
+
+  accent-color: #315f44;
+
   cursor: pointer;
 }
 
 .budget-scale {
   display: flex;
   justify-content: space-between;
-  margin-top: 0.1rem;
-  font-size: 0.75rem;
+
+  margin-top: -0.15rem;
+
+  font-size: 0.7rem;
+
   opacity: 0.6;
 }
 
 .generate-preferences-button {
   width: 100%;
-  margin-top: 1rem;
+
+  margin-top: 0.9rem;
+}
+
+
+/* =========================================================
+   SEMAINE AFFICHÉE
+   ========================================================= */
+
+.current-week {
+  min-width: 0;
 }
 
 .week-toolbar {
   display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  align-items: center;
+
+  gap: 0.55rem;
+
+  margin-bottom: 0.8rem;
 }
 
 .week-toolbar p {
-  margin: 0;
+  width: 100%;
+
+  margin: 0 0 0.15rem;
+
+  font-size: 0.9rem;
 }
+
+.week-toolbar .secondary-button {
+  min-height: 42px;
+  padding: 0.55rem 0.7rem;
+
+  font-size: 0.82rem;
+}
+
+
+/* =========================================================
+   JOURS / REPAS
+   ========================================================= */
 
 .days {
   display: grid;
-  gap: 1rem;
+  gap: 0.7rem;
 }
 
 .day-card {
-  padding: 1rem;
+  padding: 0.75rem;
+
   border: 1px solid #dedede;
-  border-radius: 1rem;
+  border-radius: 0.9rem;
+
   background: #ffffff;
 }
 
 .day-card h2 {
-  margin: 0 0 0.9rem;
-  font-size: 1.1rem;
+  margin: 0 0 0.55rem;
+
+  font-size: 1rem;
+  line-height: 1.2;
 }
 
 .meals {
   display: grid;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .meal-card {
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
-  padding: 0.85rem;
-  border-radius: 0.75rem;
-  background: #f5f5f5;
+  display: grid;
+
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "type actions"
+    "name actions";
+
+  align-items: center;
+
+  column-gap: 0.6rem;
+  row-gap: 0.15rem;
+
+  padding: 0.65rem;
+
+  border-radius: 0.7rem;
+
+  background: #f5f6f5;
 }
 
 .meal-type {
-  font-size: 0.8rem;
+  grid-area: type;
+
+  font-size: 0.72rem;
   font-weight: 600;
-  opacity: 0.65;
+
+  opacity: 0.62;
 }
 
 .meal-name {
-  font-size: 1rem;
+  grid-area: name;
+
+  min-width: 0;
+
+  font-size: 0.9rem;
+  line-height: 1.25;
+
+  overflow-wrap: anywhere;
 }
 
-.replace-button {
-  align-self: flex-start;
+
+/*
+ * Les deux boutons présents dans chaque repas restent compacts.
+ * Ils sont placés dans la deuxième colonne.
+ */
+
+.meal-card>.secondary-button {
+  grid-area: actions;
+
   min-height: 38px;
-  padding: 0.5rem 0.8rem;
+  padding: 0.45rem 0.6rem;
+
+  font-size: 0.76rem;
 }
+
+.meal-card>.replace-button {
+  grid-area: actions;
+
+  min-height: 38px;
+  padding: 0.45rem 0.6rem;
+
+  font-size: 0.76rem;
+}
+
+
+/*
+ * Comme deux boutons peuvent être présents simultanément,
+ * on les replace proprement lorsque c'est le cas.
+ */
+
+.meal-card:has(> .secondary-button + .replace-button) {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-areas:
+    "type recipe replace"
+    "name recipe replace";
+}
+
+.meal-card:has(> .secondary-button + .replace-button)>.secondary-button {
+  grid-area: recipe;
+}
+
+.meal-card:has(> .secondary-button + .replace-button)>.replace-button {
+  grid-area: replace;
+}
+
+
+/* Remplacement d'un repas */
 
 .replacement-panel {
+  grid-column: 1 / -1;
+
   display: grid;
-  gap: 0.65rem;
-  margin-top: 0.25rem;
+  gap: 0.55rem;
+
+  margin-top: 0.4rem;
+  padding-top: 0.65rem;
+
+  border-top: 1px solid #dedede;
 }
 
 .replacement-panel label {
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 600;
 }
 
 .replacement-panel select {
   width: 100%;
-  min-height: 46px;
-  padding: 0.6rem;
+  min-height: 44px;
+
+  padding: 0.55rem;
+
   border: 1px solid #cfcfcf;
-  border-radius: 0.65rem;
+  border-radius: 0.6rem;
+
   background: #ffffff;
+
+  box-sizing: border-box;
+
   font: inherit;
+  font-size: 0.88rem;
 }
 
 .replacement-actions {
   display: flex;
-  gap: 0.65rem;
+  gap: 0.5rem;
 }
+
+.replacement-actions button {
+  flex: 1;
+}
+
+
+/* =========================================================
+   AJOUT MANUEL AUX COURSES
+   ========================================================= */
 
 .week-validation {
-  margin-top: 1.5rem;
+  margin-top: 1rem;
 }
 
-
-/*
- * Produits ajoutés manuellement avant la génération
- * de la liste de courses.
- *
- * L'affichage est volontairement pensé mobile-first :
- * les champs restent faciles à utiliser au pouce.
- */
-
 .manual-shopping {
-  margin-bottom: 1rem;
-  padding: 1rem;
+  margin-bottom: 0.8rem;
+  padding: 0.85rem;
+
   border: 1px solid #dedede;
-  border-radius: 1rem;
+  border-radius: 0.9rem;
+
   background: #ffffff;
 }
 
 .manual-shopping h2 {
   margin: 0;
-  font-size: 1.1rem;
+
+  font-size: 1.05rem;
 }
 
 .manual-shopping>p {
-  margin: 0.4rem 0 1rem;
-  font-size: 0.9rem;
-  line-height: 1.45;
-  opacity: 0.7;
+  margin: 0.3rem 0 0.8rem;
+
+  font-size: 0.82rem;
+  line-height: 1.4;
+
+  opacity: 0.68;
 }
 
 .manual-shopping-form {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.55rem 0.75rem;
+
+  gap: 0.45rem 0.6rem;
 }
 
 .manual-shopping-form label {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 600;
 }
 
@@ -425,95 +672,170 @@
 .manual-shopping-form input {
   width: 100%;
   min-width: 0;
-  min-height: 46px;
-  padding: 0.65rem 0.75rem;
+  min-height: 44px;
+
+  padding: 0.55rem 0.65rem;
+
   border: 1px solid #cfcfcf;
-  border-radius: 0.65rem;
+  border-radius: 0.6rem;
+
   background: #ffffff;
+
   box-sizing: border-box;
+
   font: inherit;
+  font-size: 0.88rem;
 }
 
 .manual-shopping-form input:focus {
   border-color: #315f44;
+
   outline: 2px solid rgba(49, 95, 68, 0.15);
   outline-offset: 1px;
 }
 
-
-/*
- * Action secondaire volontairement compacte :
- * elle ne doit pas concurrencer "Valider ma semaine".
- */
-
 .manual-shopping-form .secondary-button {
   grid-column: 1 / -1;
+
   justify-self: end;
+
   width: auto;
-  min-width: 140px;
-  margin-top: 0.25rem;
+  min-width: 120px;
+
+  margin-top: 0.15rem;
 }
 
 .manual-shopping-items {
   display: grid;
-  gap: 0.6rem;
-  margin-top: 1rem;
-  padding-top: 1rem;
+  gap: 0.45rem;
+
+  margin-top: 0.8rem;
+  padding-top: 0.8rem;
+
   border-top: 1px solid #eeeeee;
 }
 
 .manual-shopping-items>p {
   margin: 0;
-  font-size: 0.9rem;
+
+  font-size: 0.85rem;
 }
 
 .manual-shopping-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.65rem 0.75rem;
-  border-radius: 0.65rem;
+
+  gap: 0.6rem;
+
+  padding: 0.55rem 0.65rem;
+
+  border-radius: 0.6rem;
+
   background: #f5f5f5;
 }
 
 .manual-shopping-item span {
   min-width: 0;
+
+  font-size: 0.85rem;
+
   overflow-wrap: anywhere;
 }
 
 .manual-shopping-item .secondary-button {
   flex-shrink: 0;
+
   min-height: 38px;
-  padding: 0.45rem 0.7rem;
-  font-size: 0.85rem;
+
+  padding: 0.4rem 0.6rem;
+
+  font-size: 0.78rem;
 }
+
+
+/* =========================================================
+   VALIDATION
+   ========================================================= */
 
 .week-actions {
   display: grid;
-  gap: 0.75rem;
-}
 
-.validate-button {
-  width: 100%;
-  min-height: 52px;
+  gap: 0.6rem;
 }
 
 
 /*
- * Le planning imprimable existe dans le HTML,
- * mais ne doit pas apparaître dans l'interface habituelle.
+ * !important est volontaire ici :
+ * le HTML actuel contient encore un style inline width: 50%.
+ * On le neutralise sans modifier la logique du composant.
  */
+
+.validate-button {
+  width: 100% !important;
+  min-height: 50px;
+
+  margin: 0 !important;
+}
+
+
+/* =========================================================
+   VERSION IMPRIMABLE
+   ========================================================= */
 
 .printable-week {
   display: none;
 }
 
 
+/* =========================================================
+   TRÈS PETITS ÉCRANS
+   ========================================================= */
+
+@media (max-width: 390px) {
+
+  .week-page {
+    padding-right: 0.75rem;
+    padding-left: 0.75rem;
+  }
+
+  /*
+   * Sur les très petits écrans, on évite de comprimer
+   * le titre de la recette entre les boutons.
+   */
+
+  .meal-card,
+  .meal-card:has(> .secondary-button + .replace-button) {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "type type"
+      "name name"
+      "recipe replace";
+  }
+
+  .meal-card>.secondary-button {
+    grid-area: recipe;
+
+    width: 100%;
+  }
+
+  .meal-card>.replace-button {
+    grid-area: replace;
+
+    width: 100%;
+  }
+
+}
+
+
+/* =========================================================
+   TABLETTE / DESKTOP
+   ========================================================= */
+
 @media (min-width: 640px) {
 
   .week-page {
-    padding: 1.5rem;
+    padding: 1.5rem 1.5rem 3rem;
   }
 
   .week-header {
@@ -522,30 +844,30 @@
     justify-content: space-between;
   }
 
-  /*
-   * Comme dans Courses :
-   * deux cartes par ligne lorsque l'espace le permet.
-   */
   .weeks-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.85rem;
+    gap: 0.65rem;
   }
 
   .week-toolbar {
-    flex-direction: row;
-    align-items: center;
     justify-content: space-between;
+  }
+
+  .week-toolbar p {
+    width: auto;
+    margin-right: auto;
+  }
+
+  .days {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
 }
 
 
-/*
- * Impression du menu hebdomadaire.
- *
- * Le navigateur permet d'imprimer sur papier ou
- * d'enregistrer le document au format PDF.
- */
+/* =========================================================
+   IMPRESSION
+   ========================================================= */
 
 @media print {
 
@@ -556,10 +878,13 @@
 
   :host {
     display: block;
+
     position: absolute;
     top: 0;
     left: 0;
+
     width: 100%;
+
     background: #ffffff;
     color: #222222;
   }
@@ -567,14 +892,10 @@
   .week-page {
     width: 100%;
     max-width: none;
+
     margin: 0;
     padding: 0;
   }
-
-  /*
-   * On retire les éléments interactifs et les informations
-   * qui n'appartiennent pas au menu à afficher sur le frigo.
-   */
 
   .week-header,
   .weeks-section,
@@ -594,9 +915,12 @@
 
   .printable-week {
     display: block;
+
     width: 100%;
-    color: #222222;
+
     background: #ffffff;
+    color: #222222;
+
     font-family: Arial, sans-serif;
     font-size: 10pt;
     line-height: 1.35;
@@ -605,39 +929,48 @@
   .printable-week-header {
     margin-bottom: 8mm;
     padding-bottom: 4mm;
+
     border-bottom: 1px solid #555555;
+
     text-align: center;
   }
 
   .printable-week-brand {
     margin: 0 0 2mm;
+
     font-size: 9pt;
     font-weight: 700;
+
     letter-spacing: 0.08em;
     text-transform: uppercase;
   }
 
   .printable-week-header h2 {
     margin: 0 0 2mm;
+
     font-size: 18pt;
     line-height: 1.2;
   }
 
   .printable-week-header>p:last-child {
     margin: 0;
+
     font-size: 10pt;
   }
 
   .printable-days {
     display: grid;
     grid-template-columns: 1fr;
+
     gap: 3mm;
   }
 
   .printable-day {
     padding: 3mm 4mm;
+
     border: 1px solid #aaaaaa;
     border-radius: 2mm;
+
     break-inside: avoid;
     page-break-inside: avoid;
   }
@@ -645,7 +978,9 @@
   .printable-day h3 {
     margin: 0 0 2mm;
     padding-bottom: 1.5mm;
+
     border-bottom: 1px solid #dddddd;
+
     font-size: 11pt;
     line-height: 1.2;
   }
@@ -653,8 +988,11 @@
   .printable-meal {
     display: grid;
     grid-template-columns: 26mm minmax(0, 1fr);
-    gap: 3mm;
+
     align-items: baseline;
+
+    gap: 3mm;
+
     padding: 1mm 0;
   }
 
@@ -669,8 +1007,10 @@
 
   .printable-meal-name {
     min-width: 0;
+
     font-size: 10pt;
     font-weight: 600;
+
     overflow-wrap: anywhere;
   }
 
