@@ -25,16 +25,20 @@
   </header>
 
 
+  <!-- Recherche et filtres -->
+
   <section class="filters-card" aria-labelledby="filters-title">
 
     <div class="filters-header">
 
       <div>
 
-        <h2 id="filters-title">Rechercher et filtrer</h2>
+        <h2 id="filters-title">
+          Rechercher une recette
+        </h2>
 
         <p>
-          Recherchez par nom de recette ou ingrédient et combinez avec les tags.
+          Recherchez par nom de recette ou ingrédient.
         </p>
 
       </div>
@@ -58,17 +62,46 @@
     </div>
 
 
-    <div *ngIf="tags.length > 0" class="tags">
+    <!--
+      Les tags sont repliés par défaut afin de ne pas occuper
+      tout le premier écran sur mobile.
 
-      <button *ngFor="let tag of tags" type="button" class="tag-filter" [class.selected]="isTagSelected(tag.id)"
-        [attr.aria-pressed]="isTagSelected(tag.id)" (click)="toggleTag(tag.id)">
-        {{ tag.name }}
-      </button>
+      Si au moins un tag est actif, la zone reste ouverte afin
+      que l'utilisateur voie immédiatement ses filtres.
+    -->
 
-    </div>
+    <details *ngIf="tags.length > 0" class="filters-details" [open]="selectedTagIds.size > 0">
+
+      <summary class="filters-summary">
+
+        <span>
+          Filtrer par tags
+        </span>
+
+        <span *ngIf="selectedTagIds.size > 0" class="filters-count">
+          {{ selectedTagIds.size }}
+        </span>
+
+      </summary>
+
+
+      <div class="tags">
+
+        <button *ngFor="let tag of tags" type="button" class="tag-filter" [class.selected]="isTagSelected(tag.id)"
+          [attr.aria-pressed]="isTagSelected(tag.id)" (click)="toggleTag(tag.id)">
+
+          {{ tag.name }}
+
+        </button>
+
+      </div>
+
+    </details>
 
   </section>
 
+
+  <!-- États -->
 
   <div *ngIf="loading" class="state-card" role="status">
     Chargement des recettes…
@@ -99,6 +132,8 @@
   </div>
 
 
+  <!-- Liste des recettes -->
+
   <div *ngIf="
       !loading &&
       !errorMessage &&
@@ -114,15 +149,12 @@
           <h2>{{ recipe.name }}</h2>
 
           <p class="recipe-meta">
-
             {{ recipe.servings }}
-
             {{
             recipe.servings > 1
             ? 'portions'
             : 'portion'
             }}
-
           </p>
 
         </div>
@@ -156,15 +188,12 @@
       <div class="recipe-footer">
 
         <span>
-
           {{ recipe.ingredients.length }}
-
           {{
           recipe.ingredients.length > 1
           ? 'ingrédients'
           : 'ingrédient'
           }}
-
         </span>
 
 
@@ -181,13 +210,18 @@
 </section>
 
 
-<!-- Modale de consultation / édition -->
+<!-- =========================================================
+     Modale de consultation / édition
+     ========================================================= -->
 
 <div *ngIf="modalOpen" class="modal-backdrop">
 
   <section class="recipe-modal" role="dialog" aria-modal="true">
 
-    <!-- Consultation d'une recette -->
+
+    <!-- =====================================================
+         Consultation d'une recette
+         ===================================================== -->
 
     <ng-container *ngIf="selectedRecipe && !showRecipeForm">
 
@@ -195,9 +229,13 @@
 
         <div>
 
-          <p class="eyebrow">Recette</p>
+          <p class="eyebrow">
+            Recette
+          </p>
 
-          <h2>{{ selectedRecipe.name }}</h2>
+          <h2>
+            {{ selectedRecipe.name }}
+          </h2>
 
         </div>
 
@@ -215,15 +253,12 @@
         <div class="recipe-summary">
 
           <span>
-
             {{ selectedRecipe.servings }}
-
             {{
             selectedRecipe.servings > 1
             ? 'portions'
             : 'portion'
             }}
-
           </span>
 
 
@@ -256,28 +291,21 @@
 
           <h3>Ingrédients</h3>
 
-
           <ul class="ingredient-detail-list">
 
-            <li *ngFor="
-                let ingredient of selectedRecipe.ingredients
-              ">
+            <li *ngFor="let ingredient of selectedRecipe.ingredients">
 
               <span>
                 {{ ingredient.ingredientName }}
               </span>
 
-
               <strong>
-
                 {{ ingredient.quantity }}
-
                 {{
                 ingredient.unit === 'unité'
                 ? 'Pièce(s)'
                 : ingredient.unit
                 }}
-
               </strong>
 
             </li>
@@ -302,18 +330,15 @@
 
       <footer class="modal-footer">
 
-        <button type="button" class="secondary-button" [disabled]="downloadingRecipe" (click)="closeModal()">
-          Fermer
-        </button>
-
-
         <button type="button" class="secondary-button" [disabled]="downloadingRecipe"
           (click)="downloadRecipe(selectedRecipe)">
+
           {{
           downloadingRecipe
           ? 'Téléchargement…'
           : 'Télécharger la recette'
           }}
+
         </button>
 
 
@@ -333,7 +358,9 @@
     </ng-container>
 
 
-    <!-- Création / modification -->
+    <!-- =====================================================
+         Création / modification
+         ===================================================== -->
 
     <ng-container *ngIf="showRecipeForm">
 
@@ -342,24 +369,20 @@
         <div>
 
           <p class="eyebrow">
-
             {{
             editingRecipe
             ? 'Modification'
             : 'Nouvelle recette'
             }}
-
           </p>
 
 
           <h2>
-
             {{
             editingRecipe
             ? 'Modifier la recette'
             : 'Ajouter une recette'
             }}
-
           </h2>
 
         </div>
@@ -375,6 +398,9 @@
       <form [formGroup]="recipeForm" (ngSubmit)="saveRecipe()" class="modal-form" novalidate>
 
         <div class="modal-body">
+
+
+          <!-- Informations principales -->
 
           <div class="form-grid">
 
@@ -426,21 +452,29 @@
           </div>
 
 
+          <!-- Saisonnalité -->
+
           <fieldset class="choice-section">
 
-            <legend>Saisonnalité</legend>
+            <legend>
+              Saisonnalité
+            </legend>
 
             <div class="choice-list">
 
               <button *ngFor="let season of seasons" type="button" class="choice-chip"
                 [class.selected]="isSeasonSelected(season.value)" (click)="toggleSeason(season.value)">
+
                 {{ season.label }}
+
               </button>
 
             </div>
 
           </fieldset>
 
+
+          <!-- Tags -->
 
           <fieldset *ngIf="tags.length > 0" class="choice-section">
 
@@ -459,13 +493,17 @@
 
               <button *ngFor="let tag of tags" type="button" class="choice-chip"
                 [class.selected]="isRecipeTagSelected(tag.id)" (click)="toggleRecipeTag(tag.id)">
+
                 {{ tag.name }}
+
               </button>
 
             </div>
 
           </fieldset>
 
+
+          <!-- Ingrédients -->
 
           <section class="ingredients-section">
 
@@ -484,6 +522,7 @@
                   let ingredient of ingredients.controls;
                   let i = index
                 " [formGroupName]="i" class="ingredient-row">
+
 
                 <div class="field ingredient-name">
 
@@ -530,7 +569,6 @@
                   <label [for]="'unit-' + i">
                     Unité
                   </label>
-
 
                   <select [id]="'unit-' + i" formControlName="unit" (change)="normalizeIngredientQuantity(i)">
 
@@ -599,6 +637,8 @@
 
           </section>
 
+
+          <!-- Préparation -->
 
           <div class="field instructions-field">
 

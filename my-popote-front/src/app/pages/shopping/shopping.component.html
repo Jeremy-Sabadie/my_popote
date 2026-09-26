@@ -1,4 +1,5 @@
 <section class="shopping-page">
+
   <header class="shopping-header">
     <div>
       <p class="eyebrow">Ma semaine</p>
@@ -6,7 +7,10 @@
     </div>
   </header>
 
-  <section class="history-section" aria-label="Historique des listes de courses">
+
+  <!-- Historique : visible uniquement lorsqu'aucune liste n'est ouverte -->
+  <section *ngIf="!shoppingList" class="history-section" aria-label="Historique des listes de courses">
+
     <h2>Mes semaines</h2>
 
     <p *ngIf="loadingHistory">
@@ -26,10 +30,12 @@
     </p>
 
     <div *ngIf="!loadingHistory && shoppingListHistory.length > 0" class="week-list">
+
       <button *ngFor="let entry of shoppingListHistory" type="button" class="week-card"
-        [class.week-card-selected]="shoppingList?.id === entry.id" [attr.aria-pressed]="shoppingList?.id === entry.id"
         (click)="openShoppingList(entry.id)">
+
         <span class="week-card-content">
+
           <span class="week-card-label">
             Semaine du
           </span>
@@ -37,20 +43,28 @@
           <strong class="week-card-date">
             {{ entry.weekStartDate | date: 'dd/MM/yyyy' }}
           </strong>
+
         </span>
 
         <span class="week-card-arrow" aria-hidden="true">
           ›
         </span>
+
       </button>
+
     </div>
+
   </section>
 
+
+  <!-- Liste de courses sélectionnée -->
   <section *ngIf="shoppingList || loading || errorMessage" class="selected-list-section"
     aria-label="Liste sélectionnée">
+
     <button *ngIf="shoppingList || errorMessage" type="button" class="back-button" (click)="showHistory()">
       ← Revenir à l'historique
     </button>
+
 
     <p *ngIf="loading">
       Chargement de la liste…
@@ -60,6 +74,7 @@
       {{ errorMessage }}
     </p>
 
+
     <div *ngIf="
         !loading &&
         shoppingList &&
@@ -68,124 +83,199 @@
       Aucun article à acheter.
     </div>
 
+
+    <!-- Articles à acheter -->
     <div *ngIf="
         !loading &&
         shoppingList &&
         shoppingList.items.length > 0
       " class="shopping-list">
+
       <article *ngFor="let item of shoppingList.items" class="shopping-item">
-        <div>
-          <strong>
-            {{ item.ingredientName }}
-          </strong>
 
-          <p>
-            {{ item.quantity }} {{ item.unit }}
-          </p>
+        <div class="item-main">
 
-          <label>
-            <input type="checkbox" [checked]="false" [disabled]="isUpdatingItem(item.id)"
-              (change)="updateAlreadyOwned(item, true)" />
+          <div class="item-information">
 
-            J'en ai déjà
-          </label>
-        </div>
-
-        <span *ngIf="item.manual" class="manual-badge">
-          Ajout manuel
-        </span>
-      </article>
-    </div>
-
-    <section *ngIf="
-        !loading &&
-        shoppingList &&
-        shoppingList.alreadyOwnedItems.length > 0
-      " aria-label="Articles déjà présents à la maison">
-      <h2>Déjà à la maison</h2>
-
-      <div class="shopping-list">
-        <article *ngFor="let item of shoppingList.alreadyOwnedItems" class="shopping-item">
-          <div>
-            <strong>
+            <strong class="item-name">
               {{ item.ingredientName }}
             </strong>
 
-            <p>
+            <span class="item-quantity">
               {{ item.quantity }} {{ item.unit }}
-            </p>
+            </span>
 
-            <label>
-              <input type="checkbox" [checked]="true" [disabled]="isUpdatingItem(item.id)"
-                (change)="updateAlreadyOwned(item, false)" />
-
-              J'en ai déjà
-            </label>
           </div>
 
           <span *ngIf="item.manual" class="manual-badge">
             Ajout manuel
           </span>
+
+        </div>
+
+
+        <label class="owned-control">
+
+          <input type="checkbox" [checked]="false" [disabled]="isUpdatingItem(item.id)"
+            (change)="updateAlreadyOwned(item, true)" />
+
+          <span>
+            J'en ai déjà
+          </span>
+
+        </label>
+
+      </article>
+
+    </div>
+
+
+    <!-- Articles déjà disponibles -->
+    <section *ngIf="
+        !loading &&
+        shoppingList &&
+        shoppingList.alreadyOwnedItems.length > 0
+      " class="owned-section" aria-label="Articles déjà présents à la maison">
+
+      <h2>Déjà à la maison</h2>
+
+      <div class="shopping-list owned-list">
+
+        <article *ngFor="let item of shoppingList.alreadyOwnedItems" class="shopping-item shopping-item-owned">
+
+          <div class="item-main">
+
+            <div class="item-information">
+
+              <strong class="item-name">
+                {{ item.ingredientName }}
+              </strong>
+
+              <span class="item-quantity">
+                {{ item.quantity }} {{ item.unit }}
+              </span>
+
+            </div>
+
+            <span *ngIf="item.manual" class="manual-badge">
+              Ajout manuel
+            </span>
+
+          </div>
+
+
+          <label class="owned-control">
+
+            <input type="checkbox" [checked]="true" [disabled]="isUpdatingItem(item.id)"
+              (change)="updateAlreadyOwned(item, false)" />
+
+            <span>
+              J'en ai déjà
+            </span>
+
+          </label>
+
         </article>
+
       </div>
+
     </section>
 
+
+    <!-- Export / partage -->
     <section *ngIf="
         !loading &&
         shoppingList &&
         shoppingList.items.length > 0
       " class="share-section" aria-label="Récupérer ou partager la liste de courses">
+
       <button type="button" class="share-button" (click)="exportTxt()">
         Télécharger la liste (.txt)
       </button>
 
       <button type="button" class="share-button" (click)="shareByEmail()" [disabled]="sendingEmail">
+
         {{
         sendingEmail
         ? 'Envoi en cours…'
         : 'Envoyer la liste par e-mail'
         }}
+
       </button>
+
     </section>
+
 
     <p *ngIf="emailMessage" role="status" aria-live="polite">
       {{ emailMessage }}
     </p>
 
+
+    <!-- Accès aux Drives -->
     <section *ngIf="
         !loading &&
         shoppingList &&
         shoppingList.items.length > 0
       " class="drive-section">
+
       <h2>Commander mes courses</h2>
 
       <p>
         Ouvre ton Drive habituel avec ta liste My Popote à portée de main.
       </p>
 
+
       <div class="drive-links">
+
         <a class="drive-link" href="https://www.leclercdrive.fr/mobile/" target="_blank" rel="noopener noreferrer">
+
           E.Leclerc Drive
-          <span aria-hidden="true">↗</span>
+
+          <span aria-hidden="true">
+            ↗
+          </span>
+
         </a>
 
+
         <a class="drive-link" href="https://www.carrefour.fr/services/drive" target="_blank" rel="noopener noreferrer">
+
           Carrefour Drive
-          <span aria-hidden="true">↗</span>
+
+          <span aria-hidden="true">
+            ↗
+          </span>
+
         </a>
+
 
         <a class="drive-link" href="https://www.intermarche.com/enseigne/services/drive" target="_blank"
           rel="noopener noreferrer">
+
           Intermarché Drive
-          <span aria-hidden="true">↗</span>
+
+          <span aria-hidden="true">
+            ↗
+          </span>
+
         </a>
+
 
         <a class="drive-link" href="https://www.auchan.fr/parcours-de-courses-drive/ep-parcours-de-courses-drive"
           target="_blank" rel="noopener noreferrer">
+
           Auchan Drive
-          <span aria-hidden="true">↗</span>
+
+          <span aria-hidden="true">
+            ↗
+          </span>
+
         </a>
+
       </div>
+
     </section>
+
   </section>
+
 </section>

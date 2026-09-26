@@ -29,14 +29,18 @@
 
 
   <!--
-    Navigation visuelle entre les semaines.
+    Navigation entre les semaines.
 
-    La semaine courante et les semaines précédentes sont
-    regroupées au même endroit pour retrouver le fonctionnement
-    déjà utilisé dans la page Courses.
+    L'historique est affiché uniquement lorsqu'on consulte
+    la semaine courante. Dès qu'une ancienne semaine est ouverte,
+    on donne toute la place au planning.
   -->
 
-  <section *ngIf="!historyLoading && (week || history.length > 0)" class="weeks-section" aria-labelledby="weeks-title">
+  <section *ngIf="
+      !historyLoading &&
+      viewingCurrentWeek &&
+      (week || history.length > 0)
+    " class="weeks-section" aria-labelledby="weeks-title">
 
     <h2 id="weeks-title">
       Mes semaines
@@ -45,7 +49,7 @@
 
     <div class="weeks-list">
 
-      <button *ngIf="viewingCurrentWeek && week" type="button" class="week-history-card selected" aria-current="true">
+      <button *ngIf="week" type="button" class="week-history-card selected" aria-current="true">
 
         <span class="week-history-content">
 
@@ -67,35 +71,8 @@
       </button>
 
 
-      <button *ngIf="!viewingCurrentWeek" type="button" class="week-history-card" (click)="viewCurrentWeek()">
-
-        <span class="week-history-content">
-
-          <span class="week-history-label">
-            Semaine du
-          </span>
-
-          <strong>
-            {{ weekLabel(weekStartDate) }}
-          </strong>
-
-        </span>
-
-
-        <span class="week-history-arrow" aria-hidden="true">
-          ›
-        </span>
-
-      </button>
-
-
-      <button *ngFor="let historicalWeek of history" type="button" class="week-history-card" [class.selected]="
-          week?.id === historicalWeek.id
-        " [attr.aria-current]="
-          week?.id === historicalWeek.id
-            ? 'true'
-            : null
-        " (click)="viewHistoryWeek(historicalWeek)">
+      <button *ngFor="let historicalWeek of history" type="button" class="week-history-card"
+        (click)="viewHistoryWeek(historicalWeek)">
 
         <span class="week-history-content">
 
@@ -121,7 +98,7 @@
   </section>
 
 
-  <p *ngIf="historyLoading" class="history-loading">
+  <p *ngIf="historyLoading && viewingCurrentWeek" class="history-loading">
     Chargement de l'historique…
   </p>
 
@@ -135,6 +112,8 @@
     {{ errorMessage }}
   </div>
 
+
+  <!-- Préférences de génération -->
 
   <section *ngIf="
       !loading &&
@@ -221,9 +200,11 @@
         selectedPreferredTagIds.size === 0 &&
         selectedPreferredSeason === null
       " class="preferences-info">
+
       Aucune préférence sélectionnée :
       la génération utilisera simplement
       les recettes adaptées à la saison.
+
     </p>
 
 
@@ -257,6 +238,7 @@
 
     <button *ngIf="!preferencesLoading" type="button" class="primary-button generate-preferences-button"
       [disabled]="generating" (click)="generateWeek()">
+
       {{
       generating
       ? 'Génération…'
@@ -264,6 +246,7 @@
       ? 'Générer une nouvelle proposition avec ces préférences'
       : 'Générer avec ces préférences'
       }}
+
     </button>
 
 
@@ -292,29 +275,35 @@
   </div>
 
 
+  <!-- Planning -->
+
   <div *ngIf="!loading && week" class="current-week">
+
 
     <div class="week-toolbar">
 
       <p>
-
         Semaine du
 
         <strong>
           {{ weekLabel(week.weekStartDate) }}
         </strong>
-
       </p>
+
+
+      <!--
+        Sur une ancienne semaine, le retour devient l'action
+        de navigation principale.
+      -->
+
+      <button *ngIf="!viewingCurrentWeek" type="button" class="secondary-button" (click)="viewCurrentWeek()">
+        ← Revenir à mes semaines
+      </button>
 
 
       <button type="button" class="secondary-button print-week-button" data-testid="print-week-button"
         (click)="printWeek()">
         Imprimer mon planning
-      </button>
-
-
-      <button *ngIf="!viewingCurrentWeek" type="button" class="secondary-button" (click)="viewCurrentWeek()">
-        Revenir à cette semaine
       </button>
 
     </div>
@@ -325,7 +314,7 @@
     </p>
 
 
-    <!-- Affichage interactif habituel, conservé pour l'écran. -->
+    <!-- Affichage interactif -->
 
     <div class="days">
 
@@ -379,7 +368,6 @@
                   Choisir une recette
                 </option>
 
-
                 <option *ngFor="let recipe of recipes" [ngValue]="recipe.id" [disabled]="recipe.id === meal.recipeId">
                   {{ recipeOptionLabel(recipe) }}
                 </option>
@@ -416,12 +404,7 @@
     </div>
 
 
-    <!--
-      Version dédiée à l'impression.
-
-      Elle utilise la semaine actuellement affichée, y compris
-      lorsqu'elle provient de l'historique.
-    -->
+    <!-- Version dédiée à l'impression -->
 
     <section class="printable-week" data-testid="printable-week" aria-label="Planning hebdomadaire imprimable">
 
@@ -469,6 +452,8 @@
 
     </section>
 
+
+    <!-- Actions disponibles uniquement sur la semaine courante -->
 
     <div *ngIf="viewingCurrentWeek" class="week-validation">
 
@@ -557,12 +542,14 @@
       <div class="week-actions">
 
         <button type="button" class="primary-button validate-button" [disabled]="validatingWeek || generating"
-          (click)="validateWeek()" style="width: 50%; margin: 0 auto;">
+          (click)="validateWeek()">
+
           {{
           validatingWeek
           ? 'Préparation de la liste…'
           : 'Valider ma semaine'
           }}
+
         </button>
 
       </div>
