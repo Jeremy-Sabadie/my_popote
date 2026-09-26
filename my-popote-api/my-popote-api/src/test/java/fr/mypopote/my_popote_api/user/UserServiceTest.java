@@ -9,13 +9,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
  * Tests unitaires du service utilisateur.
- *
- * Le repository est simulé avec Mockito afin de tester uniquement
- * la logique du service, sans accès à la base de données.
  */
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
@@ -23,24 +22,39 @@ class UserServiceTest {
     @Mock
     private UserRepository userRepository;
 
-    // Mockito construit le service et lui injecte automatiquement le repository simulé.
     @InjectMocks
     private UserService userService;
 
     @Test
-    void shouldFindUserById() {
+    void shouldFindCurrentAuthenticatedUser() {
         User user = new User(
             "jeremy@example.com",
             "hashed-password",
             "Jérémy"
         );
 
-        // On définit le comportement attendu du repository pour cet utilisateur.
         when(userRepository.findById(1L))
             .thenReturn(Optional.of(user));
 
-        User result = userService.findById(1L);
+        User result =
+            userService.findCurrentUser(1L);
 
         assertThat(result).isSameAs(user);
+
+        verify(userRepository).findById(1L);
+    }
+
+    @Test
+    void shouldRejectUnknownAuthenticatedUser() {
+        when(userRepository.findById(999L))
+            .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() ->
+            userService.findCurrentUser(999L)
+        )
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("User not found");
+
+        verify(userRepository).findById(999L);
     }
 }

@@ -31,18 +31,25 @@ class SecurityHttpTest {
     private MockMvc mockMvc;
 
     /**
-     * Le service est simulé car ce test porte uniquement
-     * sur la sécurité HTTP du contrôleur.
+     * Les dépendances du contrôleur sont simulées car ce test
+     * porte uniquement sur les règles de sécurité HTTP.
      */
     @MockitoBean
     private UserService userService;
 
+    @MockitoBean
+    private CurrentUserService currentUserService;
+
+    /**
+     * Un utilisateur non authentifié ne doit pas pouvoir
+     * accéder aux informations du compte courant.
+     */
     @Test
     void shouldRejectUnauthenticatedBusinessRequest()
         throws Exception {
 
         mockMvc.perform(
-            get("/api/users/1")
+            get("/api/users/me")
         )
         .andExpect(status().isUnauthorized());
     }
