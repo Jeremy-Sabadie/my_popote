@@ -6,6 +6,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
+
 /**
  * Service chargé de l'inscription et de la vérification
  * des identifiants utilisateur.
@@ -17,8 +19,21 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class AuthService {
 
+    private static final String INVALID_CREDENTIALS =
+        "Invalid credentials";
+
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+
+    /**
+     * Hash BCrypt factice utilisé lorsqu'un email n'existe pas.
+     *
+     * Cela permet d'effectuer malgré tout une comparaison BCrypt
+     * et réduit les différences de temps de réponse entre :
+     * - un email inconnu ;
+     * - un mot de passe incorrect.
+     */
+    private final String dummyPasswordHash;
 
     public AuthService(
         UserRepository userRepository,
@@ -26,6 +41,11 @@ public class AuthService {
     ) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+
+        this.dummyPasswordHash =
+            passwordEncoder.encode(
+                "my-popote-security-dummy-password"
+            );
     }
 
     /**
@@ -62,33 +82,36 @@ public class AuthService {
      * Vérifie les identifiants fournis par l'utilisateur.
      *
      * La même erreur est utilisée pour un email inconnu
-     * et pour un mauvais mot de passe afin de ne pas révéler
-     * l'existence d'un compte.
+     * et pour un mauvais mot de passe.
+     *
+     * Une comparaison BCrypt est également effectuée lorsque
+     * l'adresse email n'existe pas afin de limiter les attaques
+     * d'énumération basées sur le temps de réponse.
      */
     public User authenticate(
         String email,
         String password
     ) {
-        User user = userRepository
-            .findByEmailIgnoreCase(email)
-            .orElseThrow(() ->
-                new IllegalArgumentException(
-                    "Invalid credentials"
-                )
-            );
+        Optional<User> optionalUser =
+            userRepository.findByEmailIgnoreCase(email);
+
+        String passwordHash =
+            optionalUser
+                .map(User::getPasswordHash)
+                .orElse(dummyPasswordHash);
 
         boolean passwordMatches =
             passwordEncoder.matches(
                 password,
-                user.getPasswordHash()
+                passwordHash
             );
 
-        if (!passwordMatches) {
+        if (optionalUser.isEmpty() || !passwordMatches) {
             throw new IllegalArgumentException(
-                "Invalid credentials"
+                INVALID_CREDENTIALS
             );
         }
 
-        return user;
+        return optionalUser.get();
     }
 }

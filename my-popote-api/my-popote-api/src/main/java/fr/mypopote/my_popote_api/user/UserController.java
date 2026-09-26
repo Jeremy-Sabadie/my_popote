@@ -1,41 +1,47 @@
 package fr.mypopote.my_popote_api.user;
 
+import fr.mypopote.my_popote_api.security.CurrentUserService;
 import fr.mypopote.my_popote_api.user.dto.UserResponse;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * API REST dédiée aux utilisateurs.
+ * API REST dédiée à l'utilisateur connecté.
  *
- * Le contrôleur délègue la logique métier au UserService
- * et n'expose jamais directement l'entité JPA.
+ * L'identité utilisateur provient exclusivement du JWT.
+ * Aucun identifiant utilisateur fourni par le client n'est utilisé.
  */
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
 
     private final UserService userService;
+    private final CurrentUserService currentUserService;
 
-    /**
-     * Injection par constructeur pour garder la dépendance explicite
-     * et faciliter les tests unitaires.
-     */
-    public UserController(UserService userService) {
+    public UserController(
+        UserService userService,
+        CurrentUserService currentUserService
+    ) {
         this.userService = userService;
+        this.currentUserService = currentUserService;
     }
 
     /**
-     * Retourne un utilisateur à partir de son identifiant.
+     * Retourne les informations du compte actuellement authentifié.
      *
-     * Le DTO évite notamment d'exposer le hash du mot de passe.
+     * L'identifiant est extrait du JWT afin d'empêcher un utilisateur
+     * de consulter le compte d'un autre utilisateur en modifiant l'URL.
      */
-    @GetMapping("/{userId}")
-    public UserResponse findById(
-        @PathVariable Long userId
+    @GetMapping("/me")
+    public UserResponse findCurrentUser(
+        @AuthenticationPrincipal Jwt jwt
     ) {
-        User user = userService.findById(userId);
+        Long userId = currentUserService.getUserId(jwt);
+
+        User user = userService.findCurrentUser(userId);
 
         return new UserResponse(
             user.getId(),

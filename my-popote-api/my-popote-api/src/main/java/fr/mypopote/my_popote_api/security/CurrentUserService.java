@@ -4,16 +4,18 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
 /**
- * Fournit l'identité de l'utilisateur authentifié.
- *
- * L'identifiant vient du sujet du JWT signé par le backend.
- * On ne fait donc jamais confiance à un userId envoyé par le frontend.
+ * Service permettant de récupérer l'identité
+ * de l'utilisateur authentifié depuis son JWT.
  */
 @Service
 public class CurrentUserService {
 
     /**
-     * Récupère l'identifiant utilisateur contenu dans le sujet du JWT.
+     * Retourne l'identifiant utilisateur contenu
+     * dans le subject du JWT.
+     *
+     * @param jwt JWT authentifié par Spring Security
+     * @return identifiant de l'utilisateur connecté
      */
     public Long getUserId(Jwt jwt) {
         return Long.valueOf(jwt.getSubject());

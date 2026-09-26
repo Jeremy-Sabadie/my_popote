@@ -4,12 +4,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.time.Instant;
+import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Vérifie que l'identité utilisée par le backend
- * provient bien du sujet du JWT authentifié.
+ * Tests du service permettant de récupérer
+ * l'identité utilisateur depuis le JWT.
  */
 class CurrentUserServiceTest {
 
@@ -19,16 +20,16 @@ class CurrentUserServiceTest {
     @Test
     void shouldReturnUserIdFromJwtSubject() {
         Jwt jwt = new Jwt(
-            "test-token",
+            "token",
             Instant.now(),
-            Instant.now().plusSeconds(1800),
-            java.util.Map.of("alg", "HS256"),
-            java.util.Map.of("sub", "42")
+            Instant.now().plusSeconds(3600),
+            Map.of("alg", "HS256"),
+            Map.of("sub", "42")
         );
 
         Long userId =
             currentUserService.getUserId(jwt);
 
-        assertEquals(42L, userId);
+        assertThat(userId).isEqualTo(42L);
     }
 }
