@@ -124,7 +124,8 @@ export class WeekComponent implements OnInit {
           return;
         }
 
-        this.errorMessage = 'Impossible de charger le planning pour le moment.';
+        this.errorMessage =
+          'Impossible de charger le planning pour le moment.';
       },
     });
   }
@@ -215,7 +216,8 @@ export class WeekComponent implements OnInit {
 
       error: () => {
         this.generating = false;
-        this.generationErrorMessage = 'Impossible de charger vos recettes.';
+        this.generationErrorMessage =
+          'Impossible de charger vos recettes.';
       },
     });
   }
@@ -224,7 +226,7 @@ export class WeekComponent implements OnInit {
    * Ouvre la fiche déjà existante dans l'écran Recettes.
    */
   viewRecipe(recipeId: number): void {
-    this.router.navigate(['/recipes'], {
+    void this.router.navigate(['/recipes'], {
       queryParams: {
         recipeId,
         from: 'week',
@@ -260,9 +262,30 @@ export class WeekComponent implements OnInit {
     this.replacementErrorMessage = '';
   }
 
+  /**
+   * Ouvre le formulaire existant de création d'une recette
+   * depuis le remplacement d'un repas.
+   *
+   * L'identifiant du repas planifié est conservé dans l'URL afin que
+   * l'écran Recettes puisse, après création, affecter automatiquement
+   * la nouvelle recette à ce repas puis revenir sur la semaine.
+   */
+  createRecipeForReplacement(meal: PlannedMeal): void {
+    this.replacementErrorMessage = '';
+
+    void this.router.navigate(['/recipes'], {
+      queryParams: {
+        from: 'week',
+        replaceMealId: meal.id,
+        create: true,
+      },
+    });
+  }
+
   replaceMeal(meal: PlannedMeal, recipeId: number): void {
     if (!recipeId) {
-      this.replacementErrorMessage = 'Choisissez une recette de remplacement.';
+      this.replacementErrorMessage =
+        'Choisissez une recette de remplacement.';
       return;
     }
 
@@ -319,12 +342,14 @@ export class WeekComponent implements OnInit {
     this.manualItemErrorMessage = '';
 
     if (!name) {
-      this.manualItemErrorMessage = 'Indiquez le nom du produit à ajouter.';
+      this.manualItemErrorMessage =
+        'Indiquez le nom du produit à ajouter.';
       return;
     }
 
     if (!this.manualItemQuantity || this.manualItemQuantity <= 0) {
-      this.manualItemErrorMessage = 'La quantité doit être supérieure à zéro.';
+      this.manualItemErrorMessage =
+        'La quantité doit être supérieure à zéro.';
       return;
     }
 
@@ -398,7 +423,7 @@ export class WeekComponent implements OnInit {
   private openShoppingList(shoppingListId: number): void {
     this.validatingWeek = false;
 
-    this.router.navigate(['/shopping'], {
+    void this.router.navigate(['/shopping'], {
       queryParams: {
         listId: shoppingListId,
       },

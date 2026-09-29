@@ -291,11 +291,6 @@
       </p>
 
 
-      <!--
-        Sur une ancienne semaine, le retour devient l'action
-        de navigation principale.
-      -->
-
       <button *ngIf="!viewingCurrentWeek" type="button" class="secondary-button" (click)="viewCurrentWeek()">
         ← Revenir à mes semaines
       </button>
@@ -373,6 +368,19 @@
                 </option>
 
               </select>
+
+
+              <!--
+                Si aucune recette existante ne convient, on réutilise
+                le formulaire complet de création de recette.
+
+                Le repas en cours est transmis à l'écran Recettes afin
+                que la recette créée puisse être affectée automatiquement.
+              -->
+
+              <button type="button" class="secondary-button" (click)="createRecipeForReplacement(meal)">
+                + Créer une nouvelle recette
+              </button>
 
 
               <div class="replacement-actions">
