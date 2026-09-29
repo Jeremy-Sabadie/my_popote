@@ -12,6 +12,7 @@ import { forkJoin } from 'rxjs';
 import Swal from 'sweetalert2';
 
 import { RecipeService } from '../../core/services/recipe.service';
+import { WeekService } from '../../core/services/week.service';
 import { Recipe, RecipeRequest, RecipeTag } from '../../models/recipe.model';
 
 @Component({
@@ -41,6 +42,7 @@ export class RecipesComponent implements OnInit {
   formErrorMessage = '';
 
   private openedFromWeek = false;
+  private replacementMealId: number | null = null;
 
   readonly seasons = [
     { value: 'SPRING', label: 'Printemps' },
@@ -54,6 +56,7 @@ export class RecipesComponent implements OnInit {
 
   constructor(
     private readonly recipeService: RecipeService,
+    private readonly weekService: WeekService,
     private readonly formBuilder: FormBuilder,
     private readonly route: ActivatedRoute,
     private readonly router: Router,
@@ -123,7 +126,7 @@ export class RecipesComponent implements OnInit {
         this.tags = tags;
         this.loading = false;
 
-        this.openRecipeFromQueryParams();
+        this.handleQueryParams();
       },
 
       error: () => {
@@ -136,11 +139,31 @@ export class RecipesComponent implements OnInit {
   }
 
   /**
-   * Ouvre automatiquement une recette lorsqu'un recipeId
-   * est fourni depuis le planning.
+   * Traite le contexte transmis par la page Semaine.
+   *
+   * - recipeId : ouvre une recette existante.
+   * - create=true + replaceMealId : ouvre directement le formulaire de
+   *   création afin de créer une recette puis de l'affecter au repas.
    */
-  private openRecipeFromQueryParams(): void {
-    const recipeIdParam = this.route.snapshot.queryParamMap.get('recipeId');
+  private handleQueryParams(): void {
+    const queryParams = this.route.snapshot.queryParamMap;
+
+    this.openedFromWeek = queryParams.get('from') === 'week';
+
+    const replacementMealIdParam = queryParams.get('replaceMealId');
+    const createRequested = queryParams.get('create') === 'true';
+
+    if (createRequested && replacementMealIdParam) {
+      const replacementMealId = Number(replacementMealIdParam);
+
+      if (Number.isInteger(replacementMealId) && replacementMealId > 0) {
+        this.replacementMealId = replacementMealId;
+        this.openRecipeForm();
+        return;
+      }
+    }
+
+    const recipeIdParam = queryParams.get('recipeId');
 
     if (!recipeIdParam) {
       return;
@@ -148,7 +171,7 @@ export class RecipesComponent implements OnInit {
 
     const recipeId = Number(recipeIdParam);
 
-    if (!Number.isInteger(recipeId)) {
+    if (!Number.isInteger(recipeId) || recipeId <= 0) {
       return;
     }
 
@@ -156,14 +179,9 @@ export class RecipesComponent implements OnInit {
       (currentRecipe) => currentRecipe.id === recipeId,
     );
 
-    if (!recipe) {
-      return;
+    if (recipe) {
+      this.viewRecipe(recipe);
     }
-
-    this.openedFromWeek =
-      this.route.snapshot.queryParamMap.get('from') === 'week';
-
-    this.viewRecipe(recipe);
   }
 
   private createIngredientForm(ingredientName = '', quantity = 1, unit = 'g') {
@@ -197,6 +215,7 @@ export class RecipesComponent implements OnInit {
 
     if (this.openedFromWeek) {
       this.openedFromWeek = false;
+      this.replacementMealId = null;
 
       void this.router.navigate(['/week']);
     }
@@ -479,6 +498,11 @@ export class RecipesComponent implements OnInit {
 
         this.resetRecipeForm();
 
+        if (this.replacementMealId !== null) {
+          this.replacePlannedMealWithCreatedRecipe(recipe);
+          return;
+        }
+
         void Swal.fire({
           title: 'Recette ajoutée',
           text: `"${recipe.name}" a bien été enregistrée.`,
@@ -494,6 +518,54 @@ export class RecipesComponent implements OnInit {
         console.error('Erreur lors de la création de la recette :', error);
 
         this.formErrorMessage = this.buildSaveErrorMessage(error, false);
+      },
+    });
+  }
+
+  /**
+   * Affecte la recette fraîchement créée au repas qui était en cours de
+   * remplacement, puis ramène l'utilisateur sur sa semaine.
+   */
+  private replacePlannedMealWithCreatedRecipe(recipe: Recipe): void {
+    const plannedMealId = this.replacementMealId;
+
+    if (plannedMealId === null) {
+      return;
+    }
+
+    this.weekService.replaceRecipe(plannedMealId, recipe.id).subscribe({
+      next: () => {
+        this.replacementMealId = null;
+        this.openedFromWeek = false;
+
+        void Swal.fire({
+          title: 'Recette créée et repas remplacé',
+          text: `"${recipe.name}" a été ajoutée à votre bibliothèque et utilisée dans votre semaine.`,
+          icon: 'success',
+          timer: 1600,
+          showConfirmButton: false,
+        });
+
+        void this.router.navigate(['/week']);
+      },
+
+      error: (error: HttpErrorResponse) => {
+        console.error(
+          `La recette ${recipe.id} a été créée, mais le remplacement du repas ${plannedMealId} a échoué :`,
+          error,
+        );
+
+        this.replacementMealId = null;
+        this.openedFromWeek = false;
+
+        void Swal.fire({
+          title: 'Recette créée',
+          text: 'La recette a bien été ajoutée à votre bibliothèque, mais le repas n’a pas pu être remplacé automatiquement.',
+          icon: 'warning',
+          confirmButtonText: 'Retour à ma semaine',
+        }).then(() => {
+          void this.router.navigate(['/week']);
+        });
       },
     });
   }
