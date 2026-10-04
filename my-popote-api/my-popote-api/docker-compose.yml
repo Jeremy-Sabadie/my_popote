@@ -9,8 +9,8 @@ services:
     environment:
       MARIADB_DATABASE: my_popote
       MARIADB_USER: my_popote
-      MARIADB_PASSWORD: my_popote_dev
-      MARIADB_ROOT_PASSWORD: my_popote_root_dev
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
 
     ports:
       - "3307:3306"
