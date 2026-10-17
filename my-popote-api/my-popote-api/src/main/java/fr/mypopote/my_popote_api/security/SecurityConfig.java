@@ -1,5 +1,7 @@
+
 package fr.mypopote.my_popote_api.security;
 
+import fr.mypopote.my_popote_api.auth.JwtService;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -10,124 +12,75 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 
 /**
- * Configuration centrale de la sécurité HTTP de My Popote.
- *
- * L'API fonctionne sans session serveur :
- * chaque requête protégée doit fournir un Bearer JWT valide.
+ * Configuration HTTP sécurisée de My Popote.
  */
 @Configuration
 public class SecurityConfig {
 
     private final String allowedOrigins;
-    private final String jwtSecret;
 
     public SecurityConfig(
-        @Value("${app.cors.allowed-origins:http://localhost:4200}")
-        String allowedOrigins,
-
-        @Value("${app.jwt.secret}")
-        String jwtSecret
+            @Value("${app.cors.allowed-origins:http://localhost:4200}")
+            String allowedOrigins
     ) {
         this.allowedOrigins = allowedOrigins;
-        this.jwtSecret = jwtSecret;
     }
 
     /**
-     * Définit les règles d'accès aux endpoints.
-     *
-     * Les endpoints d'authentification et le health check
-     * restent publics. Toutes les autres routes nécessitent
-     * maintenant un JWT valide.
+     * Protège les routes métier avec un JWT Bearer valide.
      */
     @Bean
-    public SecurityFilterChain securityFilterChain(
-        HttpSecurity http
-    ) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http)
+            throws Exception {
 
         http
-            .cors(Customizer.withDefaults())
-
-            /*
-             * Aucun état d'authentification n'est conservé
-             * côté serveur entre deux requêtes.
-             */
-            .sessionManagement(session ->
-                session.sessionCreationPolicy(
-                    SessionCreationPolicy.STATELESS
-                )
-            )
-
-            /*
-             * Nous utilisons actuellement des Bearer tokens
-             * et non une authentification par cookie.
-             */
-            .csrf(csrf -> csrf.disable())
-
-            .formLogin(form -> form.disable())
-            .httpBasic(basic -> basic.disable())
-
-            /*
-             * Spring Security utilise le JwtDecoder déclaré
-             * plus bas pour valider les Bearer JWT.
-             */
-            .oauth2ResourceServer(resourceServer ->
-                resourceServer.jwt(Customizer.withDefaults())
-            )
-
-            /*
-             * Une requête non authentifiée reçoit explicitement
-             * un HTTP 401 plutôt qu'une redirection HTML.
-             */
-            .exceptionHandling(exceptions ->
-                exceptions.authenticationEntryPoint(
-                    (request, response, exception) ->
-                        response.sendError(
-                            HttpServletResponse.SC_UNAUTHORIZED
+                .cors(Customizer.withDefaults())
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(
+                                SessionCreationPolicy.STATELESS
                         )
                 )
-            )
-
-            .authorizeHttpRequests(authorize ->
-                authorize
-                    .requestMatchers(
-                        HttpMethod.OPTIONS,
-                        "/**"
-                    )
-                    .permitAll()
-
-                    .requestMatchers(
-                        "/actuator/health",
-                        "/api/auth/**"
-                    )
-                    .permitAll()
-
-                    .anyRequest()
-                    .authenticated()
-            );
+                .csrf(csrf -> csrf.disable())
+                .formLogin(form -> form.disable())
+                .httpBasic(basic -> basic.disable())
+                .oauth2ResourceServer(resourceServer ->
+                        resourceServer.jwt(Customizer.withDefaults())
+                )
+                .exceptionHandling(exceptions ->
+                        exceptions.authenticationEntryPoint(
+                                (request, response, exception) ->
+                                        response.sendError(
+                                                HttpServletResponse.SC_UNAUTHORIZED
+                                        )
+                        )
+                )
+                .authorizeHttpRequests(authorize -> authorize
+                        .requestMatchers(HttpMethod.OPTIONS, "/**")
+                        .permitAll()
+                        .requestMatchers(
+                                "/actuator/health",
+                                "/api/auth/**"
+                        )
+                        .permitAll()
+                        .anyRequest()
+                        .authenticated()
+                );
 
         return http.build();
     }
 
     /**
-     * Hash sécurisé utilisé pour les mots de passe.
-     *
-     * Un mot de passe utilisateur n'est jamais enregistré
-     * directement en base de données.
+     * Encode les mots de passe avec BCrypt.
      */
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -135,84 +88,56 @@ public class SecurityConfig {
     }
 
     /**
-     * Décode et vérifie la signature des JWT entrants.
-     *
-     * La même clé secrète sera utilisée par JwtService
-     * pour signer les tokens créés lors de la connexion.
+     * Fournit à Spring Security le décodeur RS256 du service JWT.
      */
     @Bean
-    public JwtDecoder jwtDecoder() {
-        SecretKey secretKey = new SecretKeySpec(
-            jwtSecret.getBytes(StandardCharsets.UTF_8),
-            "HmacSHA256"
-        );
-
-        return NimbusJwtDecoder
-            .withSecretKey(secretKey)
-            .macAlgorithm(MacAlgorithm.HS256)
-            .build();
+    public JwtDecoder jwtDecoder(JwtService jwtService) {
+        return jwtService::decodeToken;
     }
 
     /**
-     * Configuration CORS utilisée par Spring Security.
+     * Déclare la configuration CORS.
      */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration =
-            buildCorsConfiguration();
-
         UrlBasedCorsConfigurationSource source =
-            new UrlBasedCorsConfigurationSource();
+                new UrlBasedCorsConfigurationSource();
 
         source.registerCorsConfiguration(
-            "/**",
-            configuration
+                "/**",
+                buildCorsConfiguration()
         );
 
         return source;
     }
 
     /**
-     * Construit la politique CORS de l'application.
-     *
-     * Plusieurs origines peuvent être fournies
-     * séparées par des virgules.
+     * Construit les origines et méthodes HTTP autorisées.
      */
     CorsConfiguration buildCorsConfiguration() {
-        CorsConfiguration configuration =
-            new CorsConfiguration();
+        CorsConfiguration configuration = new CorsConfiguration();
 
         List<String> origins = Arrays.stream(
-                allowedOrigins.split(",")
-            )
-            .map(String::trim)
-            .filter(origin -> !origin.isBlank())
-            .toList();
+                        allowedOrigins.split(",")
+                )
+                .map(String::trim)
+                .filter(origin -> !origin.isBlank())
+                .toList();
 
         configuration.setAllowedOrigins(origins);
 
         configuration.setAllowedMethods(
-            List.of(
-                "GET",
-                "POST",
-                "PUT",
-                "PATCH",
-                "DELETE",
-                "OPTIONS"
-            )
+                List.of(
+                        "GET", "POST", "PUT",
+                        "PATCH", "DELETE", "OPTIONS"
+                )
         );
 
         configuration.setAllowedHeaders(
-            List.of(
-                "Authorization",
-                "Content-Type"
-            )
+                List.of("Authorization", "Content-Type")
         );
 
-        configuration.setExposedHeaders(
-            List.of("Location")
-        );
-
+        configuration.setExposedHeaders(List.of("Location"));
         configuration.setAllowCredentials(false);
 
         return configuration;
