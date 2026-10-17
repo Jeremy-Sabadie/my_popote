@@ -1,5 +1,7 @@
+
 package fr.mypopote.my_popote_api.recipe;
 
+import fr.mypopote.my_popote_api.auth.JwtService;
 import fr.mypopote.my_popote_api.security.CurrentUserService;
 import fr.mypopote.my_popote_api.security.SecurityConfig;
 import org.junit.jupiter.api.Test;
@@ -36,36 +38,41 @@ class RecipeControllerSecurityTest {
     @MockitoBean
     private CurrentUserService currentUserService;
 
+    @MockitoBean
+    private JwtService jwtService;
+
     @Test
     void shouldUseAuthenticatedUserIdToFindRecipes()
-        throws Exception {
+            throws Exception {
 
         when(currentUserService.getUserId(any(Jwt.class)))
-            .thenReturn(42L);
+                .thenReturn(42L);
 
         when(
-            recipeService.findAllByUserId(
-                42L,
-                null,
-                null,
-                null
-            )
+                recipeService.findAllByUserId(
+                        42L,
+                        null,
+                        null,
+                        null
+                )
         ).thenReturn(List.of());
 
         mockMvc.perform(
-                get("/api/recipes")
-                    .with(jwt().jwt(jwt ->
-                        jwt.subject("42")
-                    ))
-            )
-            .andExpect(status().isOk());
+                        get("/api/recipes")
+                                .with(
+                                        jwt().jwt(token ->
+                                                token.subject("42")
+                                        )
+                                )
+                )
+                .andExpect(status().isOk());
 
         verify(recipeService)
-            .findAllByUserId(
-                42L,
-                null,
-                null,
-                null
-            );
+                .findAllByUserId(
+                        42L,
+                        null,
+                        null,
+                        null
+                );
     }
 }

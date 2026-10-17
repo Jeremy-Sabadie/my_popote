@@ -1,5 +1,7 @@
+
 package fr.mypopote.my_popote_api.security;
 
+import fr.mypopote.my_popote_api.auth.JwtService;
 import fr.mypopote.my_popote_api.user.UserController;
 import fr.mypopote.my_popote_api.user.UserService;
 import org.junit.jupiter.api.Test;
@@ -13,16 +15,16 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Tests HTTP de la fondation Spring Security.
+ * Tests HTTP de la configuration Spring Security.
  *
- * Le contexte est limité à la couche web afin de tester
- * les règles de sécurité sans accéder à MariaDB.
+ * Les dépendances métier et JWT sont simulées.
+ * Aucune connexion à MariaDB n'est nécessaire.
  */
 @WebMvcTest(
-    controllers = UserController.class,
-    properties = {
-        "app.cors.allowed-origins=http://localhost:4200"
-    }
+        controllers = UserController.class,
+        properties = {
+                "app.cors.allowed-origins=http://localhost:4200"
+        }
 )
 @Import(SecurityConfig.class)
 class SecurityHttpTest {
@@ -30,27 +32,26 @@ class SecurityHttpTest {
     @Autowired
     private MockMvc mockMvc;
 
-    /**
-     * Les dépendances du contrôleur sont simulées car ce test
-     * porte uniquement sur les règles de sécurité HTTP.
-     */
     @MockitoBean
     private UserService userService;
 
     @MockitoBean
     private CurrentUserService currentUserService;
 
+    @MockitoBean
+    private JwtService jwtService;
+
     /**
-     * Un utilisateur non authentifié ne doit pas pouvoir
-     * accéder aux informations du compte courant.
+     * Un utilisateur non authentifié ne doit pas
+     * accéder aux informations de son compte.
      */
     @Test
     void shouldRejectUnauthenticatedBusinessRequest()
-        throws Exception {
+            throws Exception {
 
         mockMvc.perform(
-            get("/api/users/me")
-        )
-        .andExpect(status().isUnauthorized());
+                        get("/api/users/me")
+                )
+                .andExpect(status().isUnauthorized());
     }
 }

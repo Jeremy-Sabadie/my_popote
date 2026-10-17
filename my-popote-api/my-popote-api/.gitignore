@@ -56,4 +56,7 @@ application-local.yaml
 *.tmp
 *.temp
 *.swp
-*~
+*~.secrets/
+
+# Clés privées et publiques JWT locales
+.secrets/
