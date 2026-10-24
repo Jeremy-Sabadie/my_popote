@@ -1,13 +1,9 @@
 <section class="dashboard">
 
   <header class="welcome-card">
-    <p class="eyebrow">
-      Tableau de bord
-    </p>
+    <p class="eyebrow">Tableau de bord</p>
 
-    <h1>
-      Bonjour {{ user?.firstName }}
-    </h1>
+    <h1>Bonjour {{ user?.firstName }}</h1>
 
     <p>
       Organisez vos repas, vos recettes et vos courses
@@ -16,18 +12,13 @@
   </header>
 
   <section class="quick-actions" aria-labelledby="quick-actions-title">
-
     <div class="section-heading">
-      <h2 id="quick-actions-title">
-        Que souhaitez-vous faire ?
-      </h2>
+      <h2 id="quick-actions-title">Que souhaitez-vous faire ?</h2>
     </div>
 
     <div class="action-grid">
-
       <a routerLink="/today" class="action-card">
         <span class="action-icon">🍽️</span>
-
         <div>
           <h3>Aujourd'hui</h3>
           <p>Consultez les repas prévus aujourd'hui.</p>
@@ -36,7 +27,6 @@
 
       <a routerLink="/week" class="action-card">
         <span class="action-icon">📅</span>
-
         <div>
           <h3>Ma semaine</h3>
           <p>Préparez et consultez votre planning de repas.</p>
@@ -45,7 +35,6 @@
 
       <a routerLink="/recipes" class="action-card">
         <span class="action-icon">🥘</span>
-
         <div>
           <h3>Mes recettes</h3>
           <p>Ajoutez ou retrouvez vos recettes.</p>
@@ -54,20 +43,31 @@
 
       <a routerLink="/shopping" class="action-card">
         <span class="action-icon">🛒</span>
-
         <div>
           <h3>Mes courses</h3>
           <p>Consultez votre liste de courses de la semaine.</p>
         </div>
       </a>
-
     </div>
+  </section>
+
+  <section class="feedback-section" aria-labelledby="feedback-title">
+    <a routerLink="/productpulse-auth" class="feedback-card">
+      <span class="feedback-icon" aria-hidden="true">💬</span>
+
+      <div class="feedback-content">
+        <h2 id="feedback-title">Une idée pour améliorer My Popote ?</h2>
+        <p>Partagez une suggestion ou signalez un problème.</p>
+        <span class="feedback-link">Donner mon avis · ProductPulse</span>
+      </div>
+
+      <span class="feedback-arrow" aria-hidden="true">›</span>
+    </a>
   </section>
 
   <section class="account-card">
     <div>
       <h2>Mon compte</h2>
-
       <p>
         Connecté avec
         <strong>{{ user?.email }}</strong>

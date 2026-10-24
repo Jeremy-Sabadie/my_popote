@@ -1,3 +1,4 @@
+import { ProductpulseAuthComponent } from './pages/productpulse-auth/productpulse-auth.component';
 import { Routes } from '@angular/router';
 
 import { authGuard } from './core/guards/auth.guard';
@@ -76,6 +77,11 @@ export const routes: Routes = [
   {
     path: 'settings',
     component: SettingsComponent,
+    canActivate: [authGuard],
+  },
+  {
+    path: 'productpulse-auth',
+    component: ProductpulseAuthComponent,
     canActivate: [authGuard],
   },
   {
