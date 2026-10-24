@@ -1,6 +1,7 @@
+
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable, tap } from 'rxjs';
+import { BehaviorSubject, Observable, tap } from 'rxjs';
 
 import {
   AuthResponse,
@@ -16,9 +17,7 @@ import { environment } from '../../../environments/environment';
  * Centralise l'authentification et les informations
  * de l'utilisateur connecté.
  *
- * Le JWT reste volontairement conservé en mémoire :
- * aucune donnée d'authentification sensible n'est persistée
- * dans le stockage du navigateur.
+ * Le JWT reste volontairement conservé en mémoire.
  */
 @Injectable({
   providedIn: 'root',
@@ -29,38 +28,27 @@ export class AuthService {
   private accessToken: string | null = null;
   private currentUser: AuthResponse | null = null;
 
+  private readonly sessionSubject =
+    new BehaviorSubject<AuthResponse | null>(null);
+
+  readonly session$ = this.sessionSubject.asObservable();
+
   constructor(private readonly http: HttpClient) {}
 
-  /**
-   * Authentifie l'utilisateur et initialise sa session locale.
-   */
   login(request: LoginRequest): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.authUrl}/login`, request).pipe(
-      tap((response) => {
-        this.storeSession(response);
-      }),
+      tap((response) => this.storeSession(response)),
     );
   }
 
-  /**
-   * Crée le compte puis initialise directement la session.
-   */
   register(request: RegisterRequest): Observable<AuthResponse> {
     return this.http
       .post<AuthResponse>(`${this.authUrl}/register`, request)
       .pipe(
-        tap((response) => {
-          this.storeSession(response);
-        }),
+        tap((response) => this.storeSession(response)),
       );
   }
 
-  /**
-   * Demande l'envoi d'un lien de réinitialisation.
-   *
-   * L'API retourne volontairement la même réponse
-   * que l'adresse existe ou non.
-   */
   forgotPassword(request: ForgotPasswordRequest): Observable<MessageResponse> {
     return this.http.post<MessageResponse>(
       `${this.authUrl}/forgot-password`,
@@ -68,9 +56,6 @@ export class AuthService {
     );
   }
 
-  /**
-   * Remplace le mot de passe à partir du token temporaire.
-   */
   resetPassword(request: ResetPasswordRequest): Observable<MessageResponse> {
     return this.http.post<MessageResponse>(
       `${this.authUrl}/reset-password`,
@@ -93,13 +78,12 @@ export class AuthService {
   logout(): void {
     this.accessToken = null;
     this.currentUser = null;
+    this.sessionSubject.next(null);
   }
 
-  /**
-   * Centralise l'initialisation de la session.
-   */
   private storeSession(response: AuthResponse): void {
     this.accessToken = response.accessToken;
     this.currentUser = response;
+    this.sessionSubject.next(response);
   }
 }

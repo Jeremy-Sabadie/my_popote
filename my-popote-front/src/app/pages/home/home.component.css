@@ -29,7 +29,7 @@ h1 {
   font-size: clamp(1.8rem, 7vw, 2.6rem);
 }
 
-.welcome-card>p:last-child {
+.welcome-card > p:last-child {
   max-width: 650px;
   margin: 0.75rem 0 0;
   color: var(--color-text-soft);
@@ -64,7 +64,8 @@ h1 {
   text-decoration: none;
 }
 
-.action-card:focus-visible {
+.action-card:focus-visible,
+.feedback-card:focus-visible {
   outline: 3px solid var(--color-primary);
   outline-offset: 2px;
 }
@@ -84,6 +85,73 @@ h1 {
   color: var(--color-text-soft);
   line-height: 1.4;
 }
+
+/* Accès secondaire à ProductPulse */
+
+.feedback-section {
+  margin-top: 1.5rem;
+}
+
+.feedback-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem;
+  color: inherit;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  text-decoration: none;
+  transition: border-color 0.2s, transform 0.2s;
+}
+
+.feedback-card:hover {
+  border-color: var(--color-primary);
+  transform: translateY(-2px);
+}
+
+.feedback-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 48px;
+  width: 48px;
+  height: 48px;
+  background: color-mix(in srgb, var(--color-primary) 10%, white);
+  border-radius: 14px;
+  font-size: 1.5rem;
+}
+
+.feedback-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.feedback-content h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.4;
+}
+
+.feedback-content p {
+  margin: 0.4rem 0;
+  color: var(--color-text-soft);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.feedback-link {
+  color: var(--color-primary-dark);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.feedback-arrow {
+  color: var(--color-primary);
+  font-size: 2rem;
+  line-height: 1;
+}
+
+/* Compte utilisateur */
 
 .account-card {
   display: flex;

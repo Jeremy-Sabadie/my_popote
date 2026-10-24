@@ -1,70 +1,97 @@
+
 <header class="app-header">
 
-  <a class="brand" routerLink="/home" aria-label="Retour au tableau de bord My Popote">
-    <span class="brand-icon">
-      🍳
-    </span>
-
-    <span class="brand-name">
-      My Popote
-    </span>
+  <a class="brand" routerLink="/home"
+     aria-label="Retour au tableau de bord My Popote">
+    <span class="brand-icon">🍳</span>
+    <span class="brand-name">My Popote</span>
   </a>
 
   @if (isAuthenticated) {
 
-  <div class="user-menu" (click)="$event.stopPropagation()">
+    <div class="header-actions">
 
-    <button type="button" class="user-menu-trigger" aria-haspopup="menu" [attr.aria-expanded]="menuOpen"
-      (click)="toggleUserMenu($event)">
+      @if (!roleLoading) {
+        <a
+          routerLink="/productpulse-auth"
+          class="productpulse-link"
+          [attr.aria-label]="isAdmin
+            ? 'Accéder au tableau de bord ProductPulse'
+            : 'Donner mon avis sur My Popote'"
+        >
+          <span aria-hidden="true">💬</span>
 
-      <span class="user-avatar" aria-hidden="true">
-        {{ userInitial }}
-      </span>
+          @if (isAdmin) {
+            <span>Tableau de bord ProductPulse</span>
+          } @else {
+            <span>Votre avis nous intéresse ! Laissez-le sur ProductPulse</span>
+          }
+        </a>
+      }
 
-      <span class="user-name">
-        {{ user?.firstName }}
-      </span>
+      <div class="user-menu" (click)="$event.stopPropagation()">
 
-      <span class="chevron" [class.chevron-open]="menuOpen" aria-hidden="true">
-        ▾
-      </span>
+        <button
+          type="button"
+          class="user-menu-trigger"
+          aria-haspopup="menu"
+          [attr.aria-expanded]="menuOpen"
+          (click)="toggleUserMenu($event)"
+        >
+          <span class="user-avatar" aria-hidden="true">
+            {{ userInitial }}
+          </span>
 
-    </button>
+          <span class="user-name">
+            {{ user?.firstName }}
+          </span>
 
-    @if (menuOpen) {
+          <span
+            class="chevron"
+            [class.chevron-open]="menuOpen"
+            aria-hidden="true"
+          >
+            ▾
+          </span>
+        </button>
 
-    <div class="user-dropdown" role="menu">
+        @if (menuOpen) {
 
-      <div class="user-summary">
-        <strong>
-          {{ user?.firstName }}
-        </strong>
+          <div class="user-dropdown" role="menu">
 
-        <span>
-          {{ user?.email }}
-        </span>
+            <div class="user-summary">
+              <strong>{{ user?.firstName }}</strong>
+              <span>{{ user?.email }}</span>
+            </div>
+
+            <div class="menu-separator"></div>
+
+            <a routerLink="/settings"
+               class="menu-item"
+               role="menuitem"
+               (click)="closeUserMenu()">
+              <span aria-hidden="true">👤</span>
+              Mon profil
+            </a>
+
+            <div class="menu-separator"></div>
+
+            <button
+              type="button"
+              class="menu-item logout-item"
+              role="menuitem"
+              (click)="logout()"
+            >
+              <span aria-hidden="true">↪</span>
+              Se déconnecter
+            </button>
+
+          </div>
+        }
+
       </div>
 
-      <div class="menu-separator"></div>
-
-      <a routerLink="/settings" class="menu-item" role="menuitem" (click)="closeUserMenu()">
-        <span aria-hidden="true">👤</span>
-        Mon profil
-      </a>
-
-      <div class="menu-separator"></div>
-
-      <button type="button" class="menu-item logout-item" role="menuitem" (click)="logout()">
-        <span aria-hidden="true">↪</span>
-        Se déconnecter
-      </button>
-
     </div>
-
-    }
-
-  </div>
-
   }
 
 </header>
