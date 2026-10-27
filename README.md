@@ -1,267 +1,280 @@
-# My Popote
+# 🍽️ My Popote
 
-**My Popote** est une application web full-stack de planification des repas, gestion des recettes et génération de listes de courses.
+**Application web full-stack de planification des repas, gestion des recettes et génération de listes de courses.**
 
-Le projet répond à un besoin réel : disposer d'une alternative personnelle aux services de box repas permettant de **planifier sa semaine, gérer ses recettes et maîtriser son budget**, tout en conservant le contrôle sur ses données.
+My Popote est un projet personnel né d'un besoin concret : disposer d'une alternative aux services de box repas pour organiser ses menus, maîtriser son budget alimentaire et conserver le contrôle de ses données.
 
-Il s'agit d'un projet personnel **fonctionnel, conteneurisé et déployé sur VPS**, couvrant l'ensemble du cycle de vie d'une application : conception, développement, tests, sécurité et exploitation.
+L'application est **fonctionnelle, conteneurisée et déployée sur un VPS personnel**. Elle couvre l'ensemble du cycle de vie d'un produit logiciel : conception fonctionnelle, développement, tests, sécurité, déploiement et exploitation.
 
 ---
 
-## Fonctionnalités principales
+## 🎯 Fonctionnalités principales
 
-- Gestion complète des recettes et ingrédients
-- Tags, saisonnalité, portions et estimation des coûts
-- Génération d'un planning de repas du lundi au dimanche
-- Prise en compte des préférences, saisons et contraintes budgétaires
+- Création et gestion des recettes et ingrédients
+- Gestion des portions, tags, saisons et coûts estimés
+- Génération de plannings de repas hebdomadaires
+- Prise en compte des préférences et contraintes budgétaires
 - Remplacement individuel d'un repas
-- Création d'une recette directement depuis le planning
-- Génération et agrégation automatique de la liste de courses
-- Gestion des produits déjà disponibles et ajouts manuels
+- Création de recettes directement depuis le planning
+- Génération et regroupement automatique des ingrédients dans la liste de courses
+- Ajout manuel de produits et gestion des articles disponibles
 - Suivi du budget hebdomadaire
 - Historique des semaines
 - Authentification et gestion des comptes
-- Interface responsive conçue **mobile-first**
+- Interface responsive adaptée aux smartphones
 
 ---
 
-## Architecture
+## 🏗️ Architecture
 
-```text id="n08g3k"
-Angular
-   │
-   │ REST / JSON
-   ▼
-Spring Boot API
-   │
-   │ JPA
-   ▼
+L'application repose sur une architecture full-stack à trois niveaux :
+
+```text
+Utilisateur
+    |
+    v
+Angular 19 / TypeScript
+    |
+    | REST / JSON
+    v
+Spring Boot / Java 21
+    |
+    | Spring Data JPA
+    v
 MariaDB
 ```
 
-Le backend suit une architecture en couches avec séparation des responsabilités :
+Le backend est organisé en couches :
 
-```text id="gbdxkl"
+```text
 Controller
-    │
-    ▼
+    |
+    v
 Service / Business Logic
-    │
-    ▼
+    |
+    v
 Repository
-    │
-    ▼
+    |
+    v
 JPA / MariaDB
 ```
 
-L'utilisation du **Repository Pattern** permet d'isoler la persistance de la logique métier et favorise la testabilité et la maintenabilité.
+Cette organisation favorise la séparation des responsabilités, la testabilité et la maintenabilité.
+
+Le **Repository Pattern** permet notamment d'isoler la persistance de la logique métier.
 
 ---
 
-## Stack technique
+## 🛠️ Stack technique
 
 | Domaine | Technologies |
 |---|---|
 | Frontend | Angular 19, TypeScript, RxJS |
-| Backend | Java 17, Spring Boot, Spring Web |
-| Data | MariaDB, JPA / Hibernate |
-| Sécurité | Spring Security, JWT |
+| Backend | Java 21, Spring Boot, Spring Web |
+| Données | MariaDB, JPA / Hibernate |
+| Sécurité | Spring Security, JWT RS256 |
 | Migrations | Flyway |
-| Tests | JUnit, Spring Boot Test, Testcontainers, Jasmine, Karma |
+| Tests backend | JUnit, Spring Boot Test, Testcontainers |
+| Tests frontend | Jasmine, Karma |
+| Tests E2E | Playwright |
 | Infrastructure | Docker, Docker Compose, VPS Linux |
-| Exploitation | HTTPS, reverse proxy, Actuator, health checks |
+| Exploitation | Caddy, HTTPS, Actuator, health checks |
+| Versionnement | Git, GitHub |
 
 ---
 
-## Qualité et stratégie de tests
+## 🧪 Qualité logicielle et stratégie de tests
 
 Le développement s'appuie sur une démarche inspirée du **Test-Driven Development (TDD)** :
 
-```text id="u9qimw"
-Comportement attendu
-        ↓
-      Test
-        ↓
- Implémentation
-        ↓
-   Validation
-        ↓
-  Refactoring
+```text
+Besoin fonctionnel
+       |
+       v
+Cas de test
+       |
+       v
+Implémentation
+       |
+       v
+Exécution et validation
+       |
+       v
+Refactoring
 ```
 
-Les tests couvrent plusieurs niveaux de l'application :
+Les contrôles couvrent plusieurs niveaux :
 
-- logique métier ;
-- endpoints REST ;
-- validation ;
-- authentification et autorisations ;
-- persistance ;
-- intégration avec MariaDB.
+- Tests unitaires de la logique métier
+- Tests d'intégration des services et endpoints REST
+- Validation des données
+- Tests d'authentification et d'autorisation
+- Tests de persistance
+- Tests d'intégration MariaDB avec Testcontainers
+- Tests end-to-end avec Playwright
 
-**Testcontainers** permet notamment d'exécuter les tests d'intégration avec une véritable instance MariaDB isolée et reproductible.
+**Objectif :** prévenir les régressions, vérifier les comportements attendus et fiabiliser les évolutions fonctionnelles.
 
 ---
 
-## Sécurité
+## 🔐 Sécurité et authentification
 
-La sécurité est intégrée aux choix d'architecture du projet :
+La sécurité est intégrée aux choix d'architecture :
 
-- authentification avec **Spring Security et JWT** ;
-- contrôle d'accès aux ressources utilisateur ;
-- validation des entrées ;
-- configuration CORS contrôlée ;
-- secrets et credentials externalisés ;
-- configuration par variables d'environnement ;
-- migrations de schéma contrôlées avec Flyway ;
-- récupération de compte par e-mail ;
-- exposition publique via HTTPS et reverse proxy.
+- Authentification avec Spring Security et JWT
+- Signature asymétrique **RS256**
+- Contrôle d'accès aux ressources utilisateur
+- Validation des entrées
+- Configuration CORS contrôlée
+- Secrets et identifiants externalisés
+- Configuration par variables d'environnement
+- Migrations de schéma avec Flyway
+- Récupération de compte par e-mail
+- Exposition publique via HTTPS et reverse proxy
 
 Les secrets applicatifs et identifiants d'infrastructure ne sont pas versionnés dans le dépôt.
 
+### Intégration avec ProductPulse
+
+My Popote constitue le point d'entrée d'un écosystème applicatif comprenant **ProductPulse**, une application complémentaire dédiée à la collecte et à la gestion des retours utilisateurs.
+
+L'authentification entre les deux applications repose sur des **JWT signés en RS256** :
+
+- My Popote émet les jetons d'authentification.
+- ProductPulse vérifie leur signature à l'aide d'une clé publique.
+- Les applications utilisent une identité utilisateur commune, sans dupliquer les comptes.
+- La clé privée de signature reste détenue par le service émetteur.
+
+Cette architecture illustre une approche de sécurité adaptée à la communication entre applications.
+
 ---
 
-## Docker et déploiement
+## 🐳 Docker et déploiement
 
-L'application est déployée sur un **VPS Linux** avec Docker Compose.
+My Popote est déployé sur un **VPS Linux personnel** avec Docker Compose.
 
-```text id="h4nm0u"
+```text
 Internet
-   │
- HTTPS
-   ▼
-Reverse Proxy
-   │
-   ▼
-Angular Frontend
-   │
-   ▼
-Spring Boot API
-   │
-   ▼
-MariaDB
-   │
-   ▼
-Persistent Volume
+    |
+  HTTPS
+    |
+    v
+Caddy (reverse proxy)
+    |
+    +----> Frontend Angular
+    |
+    +----> API Spring Boot
+                 |
+                 v
+              MariaDB
+                 |
+                 v
+          Volume persistant
 ```
 
-L'environnement de production comprend notamment :
+L'environnement comprend :
 
-- conteneurs indépendants pour le frontend, l'API et MariaDB ;
-- volume persistant pour les données ;
-- healthcheck MariaDB ;
-- configuration externalisée ;
-- reverse proxy HTTPS ;
-- Spring Boot Actuator pour l'observabilité.
+- Des conteneurs séparés pour le frontend, l'API et la base de données
+- Une configuration externalisée
+- Des volumes persistants
+- Des health checks
+- Une exposition publique sécurisée via HTTPS
+- Des sauvegardes de base de données
+- Des outils de supervision et de diagnostic
+
+L'infrastructure est administrée personnellement, du déploiement initial à la maintenance.
 
 ---
 
-## Méthode de développement
+## 🔄 Méthode de développement
 
-Le projet est développé de manière incrémentale avec Git et GitHub :
+Le projet évolue de manière incrémentale :
 
-```text id="r1t5fh"
-Besoin / Bug
-     ↓
-Feature / Fix branch
-     ↓
-Tests
-     ↓
-Implémentation
-     ↓
-Refactoring
-     ↓
-Pull Request
-     ↓
-Merge
-     ↓
+```text
+Besoin ou anomalie
+       |
+       v
+Analyse et cadrage
+       |
+       v
+Branche dédiée
+       |
+       v
+Développement et tests
+       |
+       v
+Revue et validation
+       |
+       v
+Intégration dans main
+       |
+       v
 Déploiement
 ```
 
-Cette organisation permet de conserver des changements isolés, testables et traçables avant leur intégration dans `main`.
+Git et GitHub permettent de conserver des changements isolés, testables et traçables.
 
 ---
 
-## Utilisation de l'intelligence artificielle
+## 🤖 Utilisation de l'intelligence artificielle
 
-L'IA est utilisée comme **outil de collaboration technique**, et non comme agent autonome chargé de développer le projet de bout en bout.
+L'intelligence artificielle est utilisée comme **assistant technique**, et non comme agent autonome chargé de développer le projet de bout en bout.
 
-Le contrôle des décisions d'ingénierie reste humain, notamment concernant :
+Elle intervient notamment pour :
 
-- l'architecture ;
-- le **Repository Pattern** et la séparation des responsabilités ;
-- la stratégie **TDD** et les tests ;
-- la modélisation des données ;
-- la sécurité ;
-- la qualité et la maintenabilité du code ;
-- l'infrastructure et le déploiement.
+- Explorer et comparer des solutions techniques
+- Analyser des erreurs
+- Proposer des implémentations
+- Identifier des cas limites
+- Participer aux revues de code et aux refactorings
 
-L'IA intervient comme assistant pour confronter des solutions, analyser des erreurs, proposer des implémentations, rechercher des cas limites ou participer aux revues et refactorings.
+Les décisions d'architecture, de conception fonctionnelle, de sécurité, de stratégie de tests et de déploiement restent sous contrôle humain.
 
-Ses propositions sont **analysées, testées et validées avant intégration**.
+Les propositions de l'IA sont analysées, testées et validées avant intégration.
 
 > **AI-assisted, developer-driven.**
 
-L'objectif est de bénéficier des gains de productivité de l'IA sans lui déléguer la compréhension du système ni la responsabilité des décisions techniques.
+---
+
+## 📈 Démarche produit
+
+My Popote n'est pas uniquement un exercice technique : c'est une application conçue pour répondre à un usage réel.
+
+Son évolution suit un cycle d'amélioration continue :
+
+1. Identifier un besoin utilisateur
+2. Traduire le besoin en fonctionnalités
+3. Concevoir et développer la solution
+4. Vérifier les comportements fonctionnels et techniques
+5. Déployer en conditions réelles
+6. Recueillir les retours et améliorer le produit
+
+Cette démarche associe **conception produit, développement et qualité logicielle**, avec une attention particulière à l'expérience utilisateur.
 
 ---
 
-## Compétences mises en œuvre
+## 🚀 État du projet
 
-**Software Engineering**
-- Architecture en couches
-- REST API
-- Repository Pattern
-- Séparation des responsabilités
-- TDD
-- Clean code et refactoring
+**Application fonctionnelle et déployée.**
 
-**Backend & Data**
-- Java / Spring Boot
-- Spring Security / JWT
-- JPA / Hibernate
-- MariaDB
-- Flyway
-
-**Frontend**
-- Angular / TypeScript
-- Responsive design
-- UX mobile-first
-- Intégration REST
-
-**QA**
-- Tests unitaires et d'intégration
-- Testcontainers
-- Tests de sécurité
-- Validation fonctionnelle
-- Gestion des régressions
-
-**DevOps**
-- Git / GitHub
-- Branches et Pull Requests
-- Docker / Docker Compose
-- VPS Linux
-- HTTPS / reverse proxy
-- Persistance et health checks
-
----
-
-## État du projet
-
-My Popote est **fonctionnel et déployé**.
-
-L'application est utilisée dans des conditions réelles, ce qui permet d'identifier puis de traiter les améliorations fonctionnelles, UX et techniques à partir de cas d'usage concrets.
+Le projet est utilisé dans des conditions réelles, ce qui permet d'identifier et de traiter des améliorations fonctionnelles, UX et techniques.
 
 ### Axes d'amélioration
 
-- amélioration de l'algorithme de génération des repas ;
-- augmentation de la couverture de tests ;
-- automatisation des contrôles qualité et du déploiement ;
-- amélioration continue de l'UX et de l'observabilité.
+- Optimisation de l'algorithme de génération des repas
+- Renforcement de la couverture de tests
+- Automatisation progressive des contrôles qualité et du déploiement
+- Amélioration continue de l'UX mobile et de l'observabilité
+- Exploitation des retours utilisateurs via ProductPulse
 
 ---
 
-## Auteur
+## 👤 Auteur
 
 **Jérémy Sabadie**
 
-Projet personnel mettant en œuvre une démarche complète de **conception, architecture, développement, test, sécurisation, déploiement et exploitation d'une application web moderne**.
+**Product Builder | Conception produit & qualité logicielle**
+
+Développement Java / Angular · Analyse fonctionnelle · QA
+
+Projet personnel illustrant une démarche complète : **du besoin utilisateur jusqu'à l'exploitation d'une application web en production**.
